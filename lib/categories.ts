@@ -5,6 +5,7 @@ export const CATEGORIES: Record<string, CategoryMeta> = {
   BILLS: { label: "Bills", color: "#eb6834", spending: true },
   ENTERTAINMENT: { label: "Entertainment", color: "#e87ba4", spending: true },
   FOOD: { label: "Food", color: "#008300", spending: true },
+  GROCERIES: { label: "Groceries", color: "#a21caf", spending: true },
   HEALTHCARE: { label: "Healthcare", color: "#1baf7a", spending: true },
   HOUSING: { label: "Housing", color: "#e34948", spending: true },
   MISCELLANEOUS: { label: "Miscellaneous", color: "#78716c", spending: true },
@@ -42,6 +43,7 @@ const LEGACY_CATEGORIES: Record<string, string> = {
 };
 
 const DETAILED_CATEGORIES: Record<string, string> = {
+  FOOD_AND_DRINK_GROCERIES: "GROCERIES",
   INCOME_SALARY: "SALARY",
   INCOME_WAGES: "SALARY",
   TRANSFER_OUT_SAVINGS: "SAVINGS",
