@@ -32,6 +32,7 @@ export function automaticCategory(tx: {
 }): string {
   const text = `${tx.merchantName ?? ""} ${tx.name}`.toLowerCase();
   const outflow = tx.amountCents > 0;
+  if (!outflow && /cash ?reward|cash ?back|rewards? redemption/.test(text)) return "NOT_SPENDING";
   if (text.includes("zelle") || text.includes("venmo")) return outflow ? "PAYMENT_APPS" : "NOT_SPENDING";
   if (text.includes("robinhood") || tx.plaidCategoryDetailed === "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS") {
     return outflow ? "INVESTING" : "NOT_SPENDING";
