@@ -101,7 +101,7 @@ export default async function SpendingPage({
             {previous.totalCents !== 0 && (
               <p className="mt-1.5 text-sm text-stone-500">
                 <span className={delta > 0 ? "text-red-600" : "text-emerald-600"}>
-                  {delta > 0 ? "↑" : "↓"} {formatCents(Math.abs(delta), { whole: true })}
+                  {delta > 0 ? "↑" : "↓"} {formatCents(Math.abs(delta))}
                 </span>{" "}
                 vs {monthLabel(addMonths(month, -1), "long").split(" ")[0]}
               </p>
@@ -128,7 +128,7 @@ export default async function SpendingPage({
             {summary.categories.map((item) => {
               const meta = categoryMeta(item.category);
               const refund = item.cents < 0;
-              const share = purchasesCents > 0 && !refund ? Math.round((item.cents / purchasesCents) * 100) : 0;
+              const share = purchasesCents > 0 && !refund ? (item.cents / purchasesCents) * 100 : 0;
               return (
                 <li key={item.category}>
                   <Link
@@ -155,9 +155,9 @@ export default async function SpendingPage({
                     <div className="tabular text-right text-sm">
                       <span className={`font-medium ${refund ? "text-emerald-600" : ""}`}>
                         {refund ? "+" : ""}
-                        {formatCents(Math.abs(item.cents), { whole: true })}
+                        {formatCents(Math.abs(item.cents))}
                       </span>
-                      <span className="ml-2 inline-block w-9 text-stone-400">{refund ? "" : `${share}%`}</span>
+                      <span className="ml-2 inline-block w-12 text-stone-400">{refund ? "" : `${share.toFixed(1)}%`}</span>
                     </div>
                   </Link>
                 </li>

@@ -9,7 +9,7 @@ export type ChartRow = { month: string; label: string; selected: boolean } & Rec
 type Props = { rows: ChartRow[]; series: ChartSeries[] };
 
 const dollars = (value: number) =>
-  value.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  value.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function compact(value: number): string {
   const sign = value < 0 ? "-" : "";

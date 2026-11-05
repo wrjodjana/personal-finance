@@ -32,12 +32,12 @@ export function monthLabel(month: string, style: "long" | "short" = "long"): str
   });
 }
 
-export function formatCents(cents: number, options: { whole?: boolean } = {}): string {
+export function formatCents(cents: number): string {
   return (cents / 100).toLocaleString("en-US", {
     style: "currency",
     currency: "USD",
-    minimumFractionDigits: options.whole ? 0 : 2,
-    maximumFractionDigits: options.whole ? 0 : 2,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   });
 }
 
