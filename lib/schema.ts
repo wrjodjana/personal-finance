@@ -67,3 +67,19 @@ export const rules = sqliteTable("rules", {
   category: text("category").notNull(),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
+
+export const transactionEdits = sqliteTable("transaction_edits", {
+  transactionId: text("transaction_id")
+    .primaryKey()
+    .references(() => transactions.id, { onDelete: "cascade" }),
+  name: text("name"),
+  date: text("date"),
+  amountCents: integer("amount_cents"),
+});
+
+export const deletedTransactions = sqliteTable("deleted_transactions", {
+  transactionId: text("transaction_id")
+    .primaryKey()
+    .references(() => transactions.id, { onDelete: "cascade" }),
+  deletedAt: text("deleted_at").notNull().default(sql`(datetime('now'))`),
+});

@@ -46,29 +46,40 @@ export function CategoryCell({ transactionId, merchant, category, source, option
     router.refresh();
   }
 
+  const color = categoryMeta(category).color;
+
   return (
     <div className="flex flex-col items-start gap-1">
-      <div className="flex items-center gap-1.5">
-        <span className="size-2 shrink-0 rounded-full" style={{ background: categoryMeta(category).color }} />
-        <select
-          value={category}
-          disabled={busy}
-          onChange={(event) => change(event.target.value)}
-          aria-label={`Category for ${merchant}`}
-          className="-ml-1 max-w-40 cursor-pointer truncate rounded-md border border-transparent bg-transparent px-1 py-0.5 text-sm text-muted hover:border-edge hover:bg-canvas hover:text-ink focus:border-edge focus:bg-canvas focus:outline-none disabled:opacity-50"
+      <div className="flex max-w-full items-center gap-1.5">
+        <span
+          className="relative inline-flex max-w-40 items-center rounded-full border px-2 py-px text-xs leading-5 transition focus-within:ring-2 focus-within:ring-line hover:brightness-[0.97] has-disabled:opacity-50"
+          style={{
+            color: `color-mix(in oklch, ${color} 58%, black)`,
+            backgroundColor: `color-mix(in oklch, ${color} 10%, white)`,
+            borderColor: `color-mix(in oklch, ${color} 28%, white)`,
+          }}
         >
-          {!options.some((option) => option.value === category) && (
-            <option value={category}>{categoryMeta(category).label}</option>
-          )}
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-          {source === "override" && <option value={RESET}>↺ Reset to automatic</option>}
-        </select>
+          <span className="truncate">{categoryMeta(category).label}</span>
+          <select
+            value={category}
+            disabled={busy}
+            onChange={(event) => change(event.target.value)}
+            aria-label={`Category for ${merchant}`}
+            className="absolute inset-0 w-full cursor-pointer appearance-none opacity-0 disabled:cursor-default"
+          >
+            {!options.some((option) => option.value === category) && (
+              <option value={category}>{categoryMeta(category).label}</option>
+            )}
+            {options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+            {source === "override" && <option value={RESET}>↺ Reset to automatic</option>}
+          </select>
+        </span>
         {source !== "plaid" && (
-          <span className="rounded bg-surface px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-faint">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-faint">
             {source === "rule" ? "Rule" : "Edited"}
           </span>
         )}

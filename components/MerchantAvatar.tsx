@@ -1,5 +1,8 @@
-export function MerchantAvatar({ name, logoUrl, size = 32 }: { name: string; logoUrl: string | null; size?: number }) {
+type Props = { name: string; logoUrl: string | null; size?: number; shape?: "circle" | "square" };
+
+export function MerchantAvatar({ name, logoUrl, size = 32, shape = "circle" }: Props) {
   const style = { width: size, height: size };
+  const rounding = shape === "square" ? "rounded-md" : "rounded-full";
   if (logoUrl) {
     return (
       <img
@@ -8,7 +11,7 @@ export function MerchantAvatar({ name, logoUrl, size = 32 }: { name: string; log
         width={size}
         height={size}
         loading="lazy"
-        className="shrink-0 rounded-full border border-edge bg-white object-cover"
+        className={`shrink-0 ${rounding} border border-edge bg-white object-cover`}
         style={style}
       />
     );
@@ -17,8 +20,8 @@ export function MerchantAvatar({ name, logoUrl, size = 32 }: { name: string; log
   return (
     <span
       aria-hidden
-      className="grid shrink-0 place-items-center rounded-full border border-edge bg-surface font-medium text-muted"
-      style={{ ...style, fontSize: size * 0.4 }}
+      className={`grid shrink-0 place-items-center ${rounding} border border-edge bg-surface font-medium text-muted`}
+      style={{ ...style, fontSize: Math.max(size * 0.42, 9) }}
     >
       {letter}
     </span>

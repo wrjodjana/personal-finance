@@ -40,9 +40,10 @@ export function daysInMonth(month: string): number {
 export function formatDay(date: string): string {
   const [year, month, day] = date.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString("en-US", {
-    weekday: "long",
+    weekday: "short",
     month: "short",
     day: "numeric",
+    year: "numeric",
     timeZone: "UTC",
   });
 }

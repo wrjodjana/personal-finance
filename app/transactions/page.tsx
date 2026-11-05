@@ -1,35 +1,25 @@
-import { eq, inArray } from "drizzle-orm";
+import { count, eq, inArray } from "drizzle-orm";
+import Link from "next/link";
 import { CategoryCell } from "@/components/CategoryCell";
 import { MerchantAvatar } from "@/components/MerchantAvatar";
 import { MonthPicker } from "@/components/MonthPicker";
-import { RemoveButton } from "@/components/RemoveButton";
-import { Rules } from "@/components/Rules";
+import { RowMenu } from "@/components/RowMenu";
 import { SetupNotice } from "@/components/SetupNotice";
 import { TransactionFilters } from "@/components/TransactionFilters";
-import { CATEGORIES, CATEGORY_KEYS, categoryMeta, normalizeCategory } from "@/lib/categories";
+import { CATEGORIES, CATEGORY_KEYS } from "@/lib/categories";
 import { getDb } from "@/lib/db";
 import {
   accountLabel,
   availableMonths,
-  listRules,
   loadLedger,
   SPENDING_ACCOUNT_TYPES,
   type LedgerEntry,
 } from "@/lib/ledger";
 import { formatCents, formatDate, formatDay, monthLabel, parseMonth } from "@/lib/months";
 import { plaidConfigured } from "@/lib/plaid";
-import { accounts, items } from "@/lib/schema";
+import { accounts, deletedTransactions, items } from "@/lib/schema";
 
 export const dynamic = "force-dynamic";
-
-function ExcludedIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="size-3.5 shrink-0" aria-label="Not counted">
-      <rect x="2.5" y="2.5" width="11" height="11" rx="2" />
-      <path d="m3 13 10-10" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function PendingIcon() {
   return (
@@ -40,16 +30,24 @@ function PendingIcon() {
   );
 }
 
+function EditedIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="size-3.5" aria-label="Edited">
+      <path d="m10.5 3 2.5 2.5-7 7H3.5V10l7-7Z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function groupByDay(entries: LedgerEntry[]) {
-  const days: { date: string; entries: LedgerEntry[]; spentCents: number }[] = [];
+  const days: { date: string; entries: LedgerEntry[]; netCents: number }[] = [];
   for (const entry of entries) {
     let day = days[days.length - 1];
     if (!day || day.date !== entry.date) {
-      day = { date: entry.date, entries: [], spentCents: 0 };
+      day = { date: entry.date, entries: [], netCents: 0 };
       days.push(day);
     }
     day.entries.push(entry);
-    if (entry.isSpending) day.spentCents += entry.amountCents;
+    if (!entry.removed) day.netCents -= entry.amountCents;
   }
   return days;
 }
@@ -74,7 +72,6 @@ export default async function TransactionsPage({
       (!account || entry.accountId === account) &&
       (!needle || `${entry.merchant} ${entry.description}`.toLowerCase().includes(needle)),
   );
-  const spendingCents = entries.filter((entry) => entry.isSpending).reduce((sum, entry) => sum + entry.amountCents, 0);
   const days = groupByDay(entries);
 
   const accountOptions = getDb()
@@ -85,22 +82,37 @@ export default async function TransactionsPage({
     .all()
     .map((row) => ({ value: row.id, label: accountLabel(row.institution, row.name, row.mask) }));
 
+  const trashCount = getDb().select({ total: count() }).from(deletedTransactions).get()?.total ?? 0;
+
   const categoryOptions = CATEGORY_KEYS.map((key) => ({ value: key, label: CATEGORIES[key].label }));
   const monthOptions = availableMonths().map((value) => ({ value, label: monthLabel(value, "medium") }));
-  const rules = listRules().map((rule) => ({
-    id: rule.id,
-    pattern: rule.pattern,
-    categoryLabel: categoryMeta(normalizeCategory(rule.category)).label,
-  }));
 
   return (
-    <div className="space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow">{monthLabel(month)}</p>
-          <h1 className="mt-1 text-2xl font-medium tracking-tight">Transactions</h1>
+    <div className="space-y-4">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-xl font-medium tracking-tight">Transactions</h1>
+        <div className="flex items-center gap-2">
+          <MonthPicker month={month} months={monthOptions} />
+          <Link
+            href="/transactions/trash"
+            aria-label={trashCount > 0 ? `Trash, ${trashCount} deleted` : "Trash"}
+            title="Trash"
+            className="control relative grid size-10 shrink-0 place-items-center rounded-full text-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-line"
+          >
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="size-4" aria-hidden>
+              <path
+                d="M3.5 5.5h13M8 5.5V4h4v1.5m-7 0 .75 10.1a1.25 1.25 0 0 0 1.25 1.15h6a1.25 1.25 0 0 0 1.25-1.15L15 5.5M8.5 8.5v5m3-5v5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            {trashCount > 0 && (
+              <span className="tabular absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-ink px-1 text-[10px] font-medium text-canvas">
+                {trashCount}
+              </span>
+            )}
+          </Link>
         </div>
-        <MonthPicker month={month} months={monthOptions} />
       </header>
 
       <TransactionFilters
@@ -111,62 +123,58 @@ export default async function TransactionsPage({
         query={query}
       />
 
-      <section className="card overflow-hidden">
-        <div className="flex items-baseline justify-between border-b border-line/70 px-5 py-3">
-          <p className="text-sm">
-            <span className="font-medium">{category ? categoryMeta(category).label : "All transactions"}</span>
-            <span className="tabular ml-2 text-muted">{entries.length}</span>
-          </p>
-          <p className="label">
-            Spent <span className="tabular text-sm font-medium text-ink">{formatCents(spendingCents)}</span>
-          </p>
-        </div>
-
-        {days.length === 0 ? (
-          <p className="px-5 py-12 text-center text-sm text-muted">No transactions match your filters.</p>
-        ) : (
-          days.map((day) => (
-            <div key={day.date}>
-              <div className="flex items-baseline justify-between bg-surface/70 px-5 py-1.5">
-                <p className="label font-medium">{formatDay(day.date)}</p>
-                <p className="label tabular">{day.spentCents !== 0 ? `Spent ${formatCents(day.spentCents)}` : ""}</p>
+      {days.length === 0 ? (
+        <section className="card px-5 py-12 text-center text-sm text-muted">No transactions match your filters.</section>
+      ) : (
+        <div className="space-y-6">
+          {days.map((day) => (
+            <section key={day.date} className="card">
+              <div className="flex items-baseline justify-between rounded-t-[calc(0.875rem-1px)] border-b border-line/70 bg-surface/60 px-4 py-2">
+                <h2 className="text-xs font-medium">{formatDay(day.date)}</h2>
+                <p className="label tabular">
+                  Net{" "}
+                  <span className={`font-medium ${day.netCents > 0 ? "text-positive" : "text-ink"}`}>
+                    {day.netCents > 0 ? "+" : ""}
+                    {formatCents(Math.abs(day.netCents))}
+                  </span>
+                </p>
               </div>
-              <ul>
+              <ul className="divide-y divide-line/60">
                 {day.entries.map((entry) => {
                   const moneyIn = entry.amountCents < 0;
-                  const muted = !entry.isSpending;
                   return (
                     <li
                       key={entry.id}
-                      className={`grid grid-cols-[2rem_1fr_auto] items-center gap-x-3 gap-y-1 border-t border-line/50 px-5 py-2.5 first:border-t-0 sm:grid-cols-[2rem_1fr_11rem_7rem_6rem] ${
+                      className={`grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1.5 px-4 py-2.5 transition-colors last:rounded-b-[calc(0.875rem-1px)] hover:bg-surface/50 sm:grid-cols-[minmax(0,1fr)_10rem_minmax(0,14rem)_7rem_1.75rem] ${
                         entry.removed ? "opacity-60" : ""
                       }`}
                     >
-                      <MerchantAvatar name={entry.merchant} logoUrl={entry.logoUrl} size={32} />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`truncate text-sm ${muted ? "text-muted" : ""}`}>{entry.merchant}</span>
-                          {entry.removed && (
-                            <span className="text-faint" title="Not counted">
-                              <ExcludedIcon />
-                            </span>
-                          )}
-                          {entry.pending && (
-                            <span className="text-faint" title="Pending">
-                              <PendingIcon />
-                            </span>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <MerchantAvatar name={entry.merchant} logoUrl={entry.logoUrl} size={24} shape="square" />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="truncate text-sm" title={entry.description}>
+                              {entry.merchant}
+                            </p>
+                            {entry.edited && (
+                              <span
+                                className="shrink-0 text-faint"
+                                title={`Edited. Bank: ${entry.bank.name}, ${formatDate(entry.bank.date)}, ${entry.bank.amountCents < 0 ? "+" : ""}${formatCents(Math.abs(entry.bank.amountCents))}`}
+                              >
+                                <EditedIcon />
+                              </span>
+                            )}
+                          </div>
+                          {entry.refundMatch && (
+                            <p className="truncate text-xs text-faint">
+                              {entry.refundMatch.role === "purchase"
+                                ? `Refunded ${formatDate(entry.refundMatch.otherDate)}`
+                                : `Refund of ${formatDate(entry.refundMatch.otherDate)} purchase`}
+                            </p>
                           )}
                         </div>
-                        <p className="truncate text-xs text-faint">
-                          {entry.refundMatch
-                            ? entry.refundMatch.role === "purchase"
-                              ? `Refunded ${formatDate(entry.refundMatch.otherDate)} · `
-                              : `Refund of ${formatDate(entry.refundMatch.otherDate)} purchase · `
-                            : ""}
-                          {entry.accountLabel}
-                        </p>
                       </div>
-                      <div className="col-start-2 row-start-2 sm:col-start-auto sm:row-start-auto">
+                      <div className="col-start-1 row-start-2 min-w-0 sm:col-start-auto sm:row-start-auto">
                         <CategoryCell
                           transactionId={entry.id}
                           merchant={entry.merchant}
@@ -175,33 +183,50 @@ export default async function TransactionsPage({
                           options={categoryOptions}
                         />
                       </div>
-                      <span
-                        className={`tabular col-start-3 row-start-1 whitespace-nowrap text-right text-sm ${
-                          entry.removed
-                            ? "text-faint line-through"
-                            : moneyIn
-                              ? "text-positive"
-                              : muted
-                                ? "text-muted"
-                                : "font-medium"
-                        } sm:col-start-auto sm:row-start-auto`}
+                      <div
+                        className="col-span-2 col-start-2 row-start-2 flex w-0 min-w-full items-center justify-end gap-2 sm:col-span-1 sm:w-auto sm:min-w-0 sm:col-start-auto sm:row-start-auto sm:justify-start"
+                        title={accountLabel(entry.account.institution, entry.account.name, entry.account.mask)}
                       >
-                        {moneyIn ? "+" : ""}
-                        {formatCents(Math.abs(entry.amountCents))}
-                      </span>
-                      <div className="col-start-3 row-start-2 text-right sm:col-start-auto sm:row-start-auto">
-                        <RemoveButton transactionId={entry.id} removed={entry.removed} />
+                        <MerchantAvatar name={entry.account.institution} logoUrl={null} size={16} />
+                        <span className="truncate text-xs text-muted">{entry.account.name}</span>
+                        {entry.account.mask && <span className="tabular shrink-0 text-xs text-faint">{entry.account.mask}</span>}
+                      </div>
+                      <div className="col-start-2 row-start-1 flex items-center justify-end gap-1.5 sm:col-start-auto sm:row-start-auto">
+                        {entry.pending && (
+                          <span className="text-faint" title="Pending">
+                            <PendingIcon />
+                          </span>
+                        )}
+                        <span
+                          className={`tabular whitespace-nowrap text-sm ${
+                            entry.removed ? "text-faint line-through" : moneyIn ? "text-positive" : ""
+                          }`}
+                        >
+                          {moneyIn ? "+" : ""}
+                          {formatCents(Math.abs(entry.amountCents))}
+                        </span>
+                      </div>
+                      <div className="col-start-3 row-start-1 flex justify-end sm:col-start-auto sm:row-start-auto">
+                        <RowMenu
+                          transactionId={entry.id}
+                          merchant={entry.merchant}
+                          date={entry.date}
+                          amountCents={entry.amountCents}
+                          category={entry.category}
+                          removed={entry.removed}
+                          edited={entry.edited}
+                          categoryEdited={entry.categorySource === "override"}
+                          options={categoryOptions}
+                        />
                       </div>
                     </li>
                   );
                 })}
               </ul>
-            </div>
-          ))
-        )}
-      </section>
-
-      <Rules rules={rules} options={categoryOptions} />
+            </section>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -2,7 +2,16 @@ import { desc, eq, inArray, sql } from "drizzle-orm";
 import { automaticCategory, isSpendingCategory, normalizeCategory } from "./categories";
 import { getDb } from "./db";
 import { addMonths, currentMonth, monthEnd, monthStart } from "./months";
-import { accounts, categoryOverrides, items, removedTransactions, rules, transactions } from "./schema";
+import {
+  accounts,
+  categoryOverrides,
+  deletedTransactions,
+  items,
+  removedTransactions,
+  rules,
+  transactionEdits,
+  transactions,
+} from "./schema";
 
 export const SPENDING_ACCOUNT_TYPES = ["credit", "depository"];
 
@@ -18,11 +27,14 @@ export type LedgerEntry = {
   description: string;
   pending: boolean;
   accountId: string;
-  accountLabel: string;
+  account: { name: string; mask: string | null; institution: string };
   category: string;
   categorySource: CategorySource;
   isSpending: boolean;
   removed: boolean;
+  edited: boolean;
+  bank: { name: string; date: string; amountCents: number };
+  deletedAt: string | null;
   refundMatch: { role: "purchase" | "refund"; otherDate: string } | null;
 };
 
@@ -43,13 +55,19 @@ export function accountLabel(institution: string, name: string, mask: string | n
   return mask ? `${institution} ${name} ••${mask}` : `${institution} ${name}`;
 }
 
-export function loadLedger(fromMonth: string, toMonth: string): LedgerEntry[] {
+function loadEntries(): LedgerEntry[] {
   const ruleList = listRules();
   const rows = getDb()
     .select({
       tx: transactions,
       override: categoryOverrides.category,
       removedAt: removedTransactions.removedAt,
+      deletedAt: deletedTransactions.deletedAt,
+      edit: {
+        name: transactionEdits.name,
+        date: transactionEdits.date,
+        amountCents: transactionEdits.amountCents,
+      },
       accountName: accounts.name,
       accountMask: accounts.mask,
       institution: items.institutionName,
@@ -59,13 +77,17 @@ export function loadLedger(fromMonth: string, toMonth: string): LedgerEntry[] {
     .innerJoin(items, eq(accounts.itemId, items.id))
     .leftJoin(categoryOverrides, eq(categoryOverrides.transactionId, transactions.id))
     .leftJoin(removedTransactions, eq(removedTransactions.transactionId, transactions.id))
+    .leftJoin(deletedTransactions, eq(deletedTransactions.transactionId, transactions.id))
+    .leftJoin(transactionEdits, eq(transactionEdits.transactionId, transactions.id))
     .where(inArray(accounts.type, SPENDING_ACCOUNT_TYPES))
-    .orderBy(desc(transactions.date), desc(transactions.amountCents))
     .all();
 
-  const entries: LedgerEntry[] = rows.map(({ tx, override, removedAt, accountName, accountMask, institution }) => {
-    const merchant = tx.merchantName ?? tx.name;
-    let category = automaticCategory(tx);
+  const entries = rows.map(({ tx, override, removedAt, deletedAt, edit, accountName, accountMask, institution }) => {
+    const bankMerchant = tx.merchantName ?? tx.name;
+    const merchant = edit?.name ?? bankMerchant;
+    const date = edit?.date ?? tx.date;
+    const amountCents = edit?.amountCents ?? tx.amountCents;
+    let category = automaticCategory({ ...tx, amountCents });
     let categorySource: CategorySource = "plaid";
     const rule = matchRule(ruleList, merchant, tx.name);
     if (override) {
@@ -78,27 +100,41 @@ export function loadLedger(fromMonth: string, toMonth: string): LedgerEntry[] {
     category = normalizeCategory(category);
     return {
       id: tx.id,
-      date: tx.date,
-      month: tx.date.slice(0, 7),
-      amountCents: tx.amountCents,
+      date,
+      month: date.slice(0, 7),
+      amountCents,
       merchant,
       logoUrl: tx.logoUrl,
       description: tx.name,
       pending: tx.pending,
       accountId: tx.accountId,
-      accountLabel: accountLabel(institution, accountName, accountMask),
+      account: { name: accountName, mask: accountMask, institution },
       category,
       categorySource,
-      isSpending: !removedAt && isSpendingCategory(category),
+      isSpending: !removedAt && !deletedAt && isSpendingCategory(category),
       removed: Boolean(removedAt),
+      edited: Boolean(edit && (edit.name !== null || edit.date !== null || edit.amountCents !== null)),
+      bank: { name: bankMerchant, date: tx.date, amountCents: tx.amountCents },
+      deletedAt: deletedAt ?? null,
       refundMatch: null,
     };
   });
 
+  return entries.sort((a, b) => b.date.localeCompare(a.date) || b.amountCents - a.amountCents);
+}
+
+export function loadLedger(fromMonth: string, toMonth: string): LedgerEntry[] {
+  const entries = loadEntries().filter((entry) => !entry.deletedAt);
   matchRefunds(entries);
   const from = monthStart(fromMonth);
   const to = monthEnd(toMonth);
   return entries.filter((entry) => entry.date >= from && entry.date <= to);
+}
+
+export function loadTrash(): LedgerEntry[] {
+  return loadEntries()
+    .filter((entry) => entry.deletedAt)
+    .sort((a, b) => b.deletedAt!.localeCompare(a.deletedAt!));
 }
 
 function merchantKey(entry: LedgerEntry): string {

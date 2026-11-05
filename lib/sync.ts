@@ -2,7 +2,15 @@ import { eq, inArray } from "drizzle-orm";
 import type { AccountBase, RemovedTransaction, Transaction } from "plaid";
 import { getDb } from "./db";
 import { plaid, RECONNECT_CODES, toPlaidFailure } from "./plaid";
-import { accounts, categoryOverrides, items, removedTransactions, transactions } from "./schema";
+import {
+  accounts,
+  categoryOverrides,
+  deletedTransactions,
+  items,
+  removedTransactions,
+  transactionEdits,
+  transactions,
+} from "./schema";
 
 export type SyncResult = {
   itemId: string;
@@ -132,6 +140,25 @@ function applyChanges(item: Item, page: SyncPage) {
           .get();
         if (pendingRemoved) {
           tx.insert(removedTransactions).values({ transactionId: row.id! }).onConflictDoNothing().run();
+        }
+        const pendingDeleted = tx
+          .select()
+          .from(deletedTransactions)
+          .where(eq(deletedTransactions.transactionId, row.pendingTransactionId))
+          .get();
+        if (pendingDeleted) {
+          tx.insert(deletedTransactions).values({ transactionId: row.id! }).onConflictDoNothing().run();
+        }
+        const pendingEdit = tx
+          .select()
+          .from(transactionEdits)
+          .where(eq(transactionEdits.transactionId, row.pendingTransactionId))
+          .get();
+        if (pendingEdit) {
+          tx.insert(transactionEdits)
+            .values({ ...pendingEdit, transactionId: row.id! })
+            .onConflictDoNothing()
+            .run();
         }
       }
     }
