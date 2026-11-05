@@ -132,7 +132,11 @@ function carryOverFromPending(db: Db, id: string, pendingId: string) {
       .insert(removedTransactions)
       .select(
         db
-          .select({ transactionId: newId, removedAt: removedTransactions.removedAt })
+          .select({
+            transactionId: newId,
+            excluded: removedTransactions.excluded,
+            removedAt: removedTransactions.removedAt,
+          })
           .from(removedTransactions)
           .where(eq(removedTransactions.transactionId, pendingId)),
       )

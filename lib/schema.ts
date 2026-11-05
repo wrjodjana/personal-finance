@@ -62,6 +62,7 @@ export const removedTransactions = sqliteTable("removed_transactions", {
   transactionId: text("transaction_id")
     .primaryKey()
     .references(() => transactions.id, { onDelete: "cascade" }),
+  excluded: integer("excluded", { mode: "boolean" }).notNull().default(true),
   removedAt: text("removed_at").notNull().default(sql`(datetime('now'))`),
 });
 

@@ -33,6 +33,7 @@ export type LedgerEntry = {
   categorySource: CategorySource;
   isSpending: boolean;
   removed: boolean;
+  exclusionChoice: boolean | null;
   edited: boolean;
   bank: { name: string; date: string; amountCents: number };
   deletedAt: string | null;
@@ -62,7 +63,7 @@ async function loadEntries(): Promise<LedgerEntry[]> {
     .select({
       tx: transactions,
       override: categoryOverrides.category,
-      removedAt: removedTransactions.removedAt,
+      excluded: removedTransactions.excluded,
       deletedAt: deletedTransactions.deletedAt,
       edit: {
         name: transactionEdits.name,
@@ -84,7 +85,7 @@ async function loadEntries(): Promise<LedgerEntry[]> {
     .where(inArray(accounts.type, SPENDING_ACCOUNT_TYPES))
     .all();
 
-  const entries = rows.map(({ tx, override, removedAt, deletedAt, edit, accountName, accountMask, institution, item }) => {
+  const entries = rows.map(({ tx, override, excluded, deletedAt, edit, accountName, accountMask, institution, item }) => {
     const bankMerchant = tx.merchantName ?? tx.name;
     const merchant = edit?.name ?? bankMerchant;
     const date = edit?.date ?? tx.date;
@@ -119,8 +120,9 @@ async function loadEntries(): Promise<LedgerEntry[]> {
       },
       category,
       categorySource,
-      isSpending: !removedAt && !deletedAt && isSpendingCategory(category),
-      removed: Boolean(removedAt),
+      isSpending: !excluded && !deletedAt && isSpendingCategory(category),
+      removed: excluded === true,
+      exclusionChoice: excluded,
       edited: Boolean(edit && (edit.name !== null || edit.date !== null || edit.amountCents !== null)),
       bank: { name: bankMerchant, date: tx.date, amountCents: tx.amountCents },
       deletedAt: deletedAt ?? null,
@@ -153,10 +155,14 @@ function daysBetween(earlier: string, later: string): number {
   return (Date.parse(`${later}T00:00:00Z`) - Date.parse(`${earlier}T00:00:00Z`)) / 86_400_000;
 }
 
+function canMatchRefund(entry: LedgerEntry): boolean {
+  return entry.isSpending && entry.exclusionChoice === null;
+}
+
 function matchRefunds(entries: LedgerEntry[]) {
   const purchases = new Map<string, LedgerEntry[]>();
   for (const entry of entries) {
-    if (!entry.isSpending || entry.amountCents <= 0) continue;
+    if (!canMatchRefund(entry) || entry.amountCents <= 0) continue;
     const key = `${entry.accountId}|${merchantKey(entry)}|${entry.amountCents}`;
     const list = purchases.get(key) ?? [];
     list.push(entry);
@@ -164,7 +170,7 @@ function matchRefunds(entries: LedgerEntry[]) {
   }
 
   const refunds = entries
-    .filter((entry) => entry.isSpending && entry.amountCents < 0)
+    .filter((entry) => canMatchRefund(entry) && entry.amountCents < 0)
     .sort((a, b) => a.date.localeCompare(b.date));
 
   for (const refund of refunds) {
@@ -179,8 +185,10 @@ function matchRefunds(entries: LedgerEntry[]) {
 
     purchase.refundMatch = { role: "purchase", otherDate: refund.date };
     refund.refundMatch = { role: "refund", otherDate: purchase.date };
-    purchase.isSpending = false;
-    refund.isSpending = false;
+    for (const entry of [purchase, refund]) {
+      entry.isSpending = false;
+      entry.removed = true;
+    }
   }
 }
 

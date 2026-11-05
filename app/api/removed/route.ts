@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { badRequest, readJson } from "@/lib/http";
@@ -14,10 +14,12 @@ export async function POST(request: Request) {
     return badRequest("Unknown transaction");
   }
 
-  if (removed) {
-    await db.insert(removedTransactions).values({ transactionId }).onConflictDoNothing();
-  } else {
-    await db.delete(removedTransactions).where(eq(removedTransactions.transactionId, transactionId));
-  }
+  await db
+    .insert(removedTransactions)
+    .values({ transactionId, excluded: removed })
+    .onConflictDoUpdate({
+      target: removedTransactions.transactionId,
+      set: { excluded: removed, removedAt: sql`(datetime('now'))` },
+    });
   return NextResponse.json({ ok: true });
 }
