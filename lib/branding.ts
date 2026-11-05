@@ -55,7 +55,7 @@ export async function refreshBranding(item: Item): Promise<void> {
   const institution = data.institution;
   let logo: Logo | null = institution.logo ? { bytes: Buffer.from(institution.logo, "base64"), type: "image/png" } : null;
   if (!logo && institution.url) logo = await fetchSiteIcon(institution.url).catch(() => null);
-  getDb()
+  await getDb()
     .update(items)
     .set({
       logo: logo?.bytes ?? null,
@@ -63,8 +63,7 @@ export async function refreshBranding(item: Item): Promise<void> {
       primaryColor: institution.primary_color ?? null,
       brandingFetchedAt: new Date().toISOString(),
     })
-    .where(eq(items.id, item.id))
-    .run();
+    .where(eq(items.id, item.id));
 }
 
 export function institutionLogoUrl(item: Pick<Item, "id" | "logoType" | "brandingFetchedAt">): string | null {

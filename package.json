@@ -2,17 +2,22 @@
   "name": "personal-finance",
   "version": "0.1.0",
   "private": true,
-  "description": "Local, single-user spending dashboard built on Plaid.",
+  "description": "Single-user spending dashboard built on Plaid. Runs on your own Cloudflare account.",
   "scripts": {
-    "dev": "node scripts/preflight.mjs && next dev -H 127.0.0.1",
+    "dev": "node scripts/preflight.mjs && npm run db:migrate:local && next dev -H 127.0.0.1",
     "build": "next build",
-    "start": "node scripts/preflight.mjs && next start -H 127.0.0.1",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "wrangler d1 migrations apply DB --remote && opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "typecheck": "tsc --noEmit",
-    "db:generate": "drizzle-kit generate"
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:import": "node scripts/import-local-db.mjs"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.3",
+    "@opennextjs/cloudflare": "^1.20.16",
     "drizzle-orm": "^0.45.4",
+    "jose": "^6.2.15",
     "next": "^16.4.5",
     "plaid": "^50.0.0",
     "react": "^19.3.1",
@@ -22,12 +27,25 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.4",
-    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "drizzle-kit": "^0.31.11",
     "tailwindcss": "^4.3.4",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "wrangler": "^4.158.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "PLAID_CLIENT_ID": {
+        "description": "Your Plaid **Production** client ID, from [dashboard.plaid.com/developers/keys](https://dashboard.plaid.com/developers/keys)."
+      },
+      "PLAID_SECRET": {
+        "description": "Your Plaid **Production** secret, from [dashboard.plaid.com/developers/keys](https://dashboard.plaid.com/developers/keys)."
+      },
+      "DB": {
+        "description": "Stores your accounts and transactions. Cloudflare creates it for you."
+      }
+    }
   }
 }

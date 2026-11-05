@@ -14,13 +14,13 @@ export async function POST(request: Request) {
   if (typeof category !== "string" || !CATEGORY_KEYS.includes(category)) {
     return badRequest("Unknown category");
   }
-  getDb().insert(rules).values({ pattern: trimmed, category }).run();
+  await getDb().insert(rules).values({ pattern: trimmed, category });
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(request: Request) {
   const { id } = await readJson(request);
   if (typeof id !== "number") return badRequest("Missing id");
-  getDb().delete(rules).where(eq(rules.id, id)).run();
+  await getDb().delete(rules).where(eq(rules.id, id));
   return NextResponse.json({ ok: true });
 }

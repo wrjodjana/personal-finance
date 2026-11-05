@@ -8,7 +8,7 @@ export function plaidConfigured(): boolean {
 
 export function plaid(): PlaidApi {
   if (!plaidConfigured()) {
-    throw new Error("PLAID_CLIENT_ID and PLAID_SECRET must be set in .env");
+    throw new Error("PLAID_CLIENT_ID and PLAID_SECRET must be set");
   }
   const key = `${process.env.PLAID_CLIENT_ID}:${process.env.PLAID_SECRET}`;
   if (globalForPlaid.plaidClient?.key !== key) {
@@ -18,6 +18,7 @@ export function plaid(): PlaidApi {
         new Configuration({
           basePath: PlaidEnvironments.production,
           baseOptions: {
+            adapter: "fetch",
             headers: {
               "PLAID-CLIENT-ID": process.env.PLAID_CLIENT_ID,
               "PLAID-SECRET": process.env.PLAID_SECRET,

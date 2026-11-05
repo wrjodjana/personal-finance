@@ -17,14 +17,14 @@ export async function POST(request: Request) {
   if (typeof transactionId !== "string") return badRequest("Missing transactionId");
 
   const db = getDb();
-  const tx = db.select().from(transactions).where(eq(transactions.id, transactionId)).get();
+  const tx = await db.select().from(transactions).where(eq(transactions.id, transactionId)).get();
   if (!tx) return badRequest("Unknown transaction");
 
   if (reset === true) {
-    db.transaction((trx) => {
-      trx.delete(transactionEdits).where(eq(transactionEdits.transactionId, transactionId)).run();
-      trx.delete(categoryOverrides).where(eq(categoryOverrides.transactionId, transactionId)).run();
-    });
+    await db.batch([
+      db.delete(transactionEdits).where(eq(transactionEdits.transactionId, transactionId)),
+      db.delete(categoryOverrides).where(eq(categoryOverrides.transactionId, transactionId)),
+    ]);
     return NextResponse.json({ ok: true });
   }
 
@@ -40,12 +40,11 @@ export async function POST(request: Request) {
   };
 
   if (edit.name === null && edit.date === null && edit.amountCents === null) {
-    db.delete(transactionEdits).where(eq(transactionEdits.transactionId, transactionId)).run();
+    await db.delete(transactionEdits).where(eq(transactionEdits.transactionId, transactionId));
   } else {
-    db.insert(transactionEdits)
+    await db.insert(transactionEdits)
       .values({ transactionId, ...edit })
-      .onConflictDoUpdate({ target: transactionEdits.transactionId, set: edit })
-      .run();
+      .onConflictDoUpdate({ target: transactionEdits.transactionId, set: edit });
   }
   return NextResponse.json({ ok: true });
 }

@@ -43,7 +43,7 @@ const REFUND_WINDOW_DAYS = 180;
 
 type Rule = typeof rules.$inferSelect;
 
-export function listRules(): Rule[] {
+export function listRules(): Promise<Rule[]> {
   return getDb().select().from(rules).orderBy(desc(rules.id)).all();
 }
 
@@ -56,9 +56,9 @@ export function accountLabel(institution: string, name: string, mask: string | n
   return mask ? `${institution} ${name} ••${mask}` : `${institution} ${name}`;
 }
 
-function loadEntries(): LedgerEntry[] {
-  const ruleList = listRules();
-  const rows = getDb()
+async function loadEntries(): Promise<LedgerEntry[]> {
+  const ruleList = await listRules();
+  const rows = await getDb()
     .select({
       tx: transactions,
       override: categoryOverrides.category,
@@ -131,16 +131,16 @@ function loadEntries(): LedgerEntry[] {
   return entries.sort((a, b) => b.date.localeCompare(a.date) || b.amountCents - a.amountCents);
 }
 
-export function loadLedger(fromMonth: string, toMonth: string): LedgerEntry[] {
-  const entries = loadEntries().filter((entry) => !entry.deletedAt);
+export async function loadLedger(fromMonth: string, toMonth: string): Promise<LedgerEntry[]> {
+  const entries = (await loadEntries()).filter((entry) => !entry.deletedAt);
   matchRefunds(entries);
   const from = monthStart(fromMonth);
   const to = monthEnd(toMonth);
   return entries.filter((entry) => entry.date >= from && entry.date <= to);
 }
 
-export function loadTrash(): LedgerEntry[] {
-  return loadEntries()
+export async function loadTrash(): Promise<LedgerEntry[]> {
+  return (await loadEntries())
     .filter((entry) => entry.deletedAt)
     .sort((a, b) => b.deletedAt!.localeCompare(a.deletedAt!));
 }
@@ -209,8 +209,8 @@ export function summarize(entries: LedgerEntry[], month: string): MonthSummary {
   };
 }
 
-export function availableMonths(): string[] {
-  const row = getDb()
+export async function availableMonths(): Promise<string[]> {
+  const row = await getDb()
     .select({ first: sql<string | null>`min(${transactions.date})` })
     .from(transactions)
     .get();

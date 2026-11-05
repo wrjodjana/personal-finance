@@ -46,20 +46,20 @@ function Status({ status, errorCode, importing }: { status: string; errorCode: s
   );
 }
 
-export default function AccountsPage() {
+export default async function AccountsPage() {
   if (!plaidConfigured()) return <SetupNotice />;
 
   const db = getDb();
-  const connections = db.select().from(items).all();
-  const allAccounts = db.select().from(accounts).all();
-  const counts = new Map(
+  const [connections, allAccounts, countRows] = await Promise.all([
+    db.select().from(items).all(),
+    db.select().from(accounts).all(),
     db
       .select({ accountId: transactions.accountId, total: count() })
       .from(transactions)
       .groupBy(transactions.accountId)
-      .all()
-      .map((row) => [row.accountId, row.total]),
-  );
+      .all(),
+  ]);
+  const counts = new Map(countRows.map((row) => [row.accountId, row.total]));
   const totalAccounts = allAccounts.length;
 
   return (

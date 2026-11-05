@@ -43,7 +43,7 @@ export default async function SpendingPage({
 }) {
   if (!plaidConfigured()) return <SetupNotice />;
 
-  const connections = getDb().select().from(items).all();
+  const connections = await getDb().select().from(items).all();
   if (connections.length === 0) {
     return (
       <div className="card mx-auto mt-16 max-w-md px-8 py-10 text-center">
@@ -61,7 +61,7 @@ export default async function SpendingPage({
   const month = parseMonth((await searchParams).month);
   const previousMonth = addMonths(month, -1);
   const chartMonths = monthRange(month, 12);
-  const ledger = loadLedger(chartMonths[0], month);
+  const ledger = await loadLedger(chartMonths[0], month);
   const summary = summarize(ledger, month);
   const previous = summarize(ledger, previousMonth);
   const delta = summary.totalCents - previous.totalCents;
@@ -87,7 +87,7 @@ export default async function SpendingPage({
 
   const scale = Math.max(...summary.categories.map((item) => item.cents), 1);
   const purchasesCents = summary.categories.reduce((sum, item) => sum + Math.max(item.cents, 0), 0);
-  const monthOptions = availableMonths().map((value) => ({ value, label: monthLabel(value, "medium") }));
+  const monthOptions = (await availableMonths()).map((value) => ({ value, label: monthLabel(value, "medium") }));
 
   return (
     <div className="space-y-5">

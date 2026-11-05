@@ -1,7 +1,8 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import type { AccountBase, RemovedTransaction, Transaction } from "plaid";
 import { refreshBranding } from "./branding";
-import { getDb } from "./db";
+import { getDb, type Db } from "./db";
 import { plaid, RECONNECT_CODES, toPlaidFailure } from "./plaid";
 import {
   accounts,
@@ -33,6 +34,8 @@ type SyncPage = {
   cursor: string;
   historyStatus: string;
 };
+
+const MAX_BOUND_PARAMETERS = 100;
 
 const globalForSync = globalThis as unknown as { financeSync?: Promise<SyncResult[]> };
 
@@ -102,84 +105,91 @@ function toAccountRow(itemId: string, account: AccountBase): typeof accounts.$in
   };
 }
 
-export function saveAccounts(itemId: string, list: AccountBase[]) {
-  const db = getDb();
-  for (const account of list) {
-    const row = toAccountRow(itemId, account);
-    db.insert(accounts).values(row).onConflictDoUpdate({ target: accounts.id, set: row }).run();
-  }
+function upsertAccount(db: Db, itemId: string, account: AccountBase) {
+  const row = toAccountRow(itemId, account);
+  return db.insert(accounts).values(row).onConflictDoUpdate({ target: accounts.id, set: row });
 }
 
-function applyChanges(item: Item, page: SyncPage) {
+export async function saveAccounts(itemId: string, list: AccountBase[]) {
   const db = getDb();
-  db.transaction((tx) => {
-    for (const account of page.accounts) {
-      const row = toAccountRow(item.id, account);
-      tx.insert(accounts).values(row).onConflictDoUpdate({ target: accounts.id, set: row }).run();
-    }
+  const [first, ...rest] = list.map((account) => upsertAccount(db, itemId, account));
+  if (first) await db.batch([first, ...rest]);
+}
 
-    for (const plaidTx of [...page.added, ...page.modified]) {
-      const row = toRow(plaidTx);
-      tx.insert(transactions).values(row).onConflictDoUpdate({ target: transactions.id, set: row }).run();
-
-      if (row.pendingTransactionId) {
-        const pendingOverride = tx
-          .select()
+function carryOverFromPending(db: Db, id: string, pendingId: string) {
+  const newId = sql<string>`${id}`.as("transaction_id");
+  return [
+    db
+      .insert(categoryOverrides)
+      .select(
+        db
+          .select({ transactionId: newId, category: categoryOverrides.category })
           .from(categoryOverrides)
-          .where(eq(categoryOverrides.transactionId, row.pendingTransactionId))
-          .get();
-        if (pendingOverride) {
-          tx.insert(categoryOverrides)
-            .values({ transactionId: row.id!, category: pendingOverride.category })
-            .onConflictDoNothing()
-            .run();
-        }
-        const pendingRemoved = tx
-          .select()
+          .where(eq(categoryOverrides.transactionId, pendingId)),
+      )
+      .onConflictDoNothing(),
+    db
+      .insert(removedTransactions)
+      .select(
+        db
+          .select({ transactionId: newId, removedAt: removedTransactions.removedAt })
           .from(removedTransactions)
-          .where(eq(removedTransactions.transactionId, row.pendingTransactionId))
-          .get();
-        if (pendingRemoved) {
-          tx.insert(removedTransactions).values({ transactionId: row.id! }).onConflictDoNothing().run();
-        }
-        const pendingDeleted = tx
-          .select()
+          .where(eq(removedTransactions.transactionId, pendingId)),
+      )
+      .onConflictDoNothing(),
+    db
+      .insert(deletedTransactions)
+      .select(
+        db
+          .select({ transactionId: newId, deletedAt: deletedTransactions.deletedAt })
           .from(deletedTransactions)
-          .where(eq(deletedTransactions.transactionId, row.pendingTransactionId))
-          .get();
-        if (pendingDeleted) {
-          tx.insert(deletedTransactions).values({ transactionId: row.id! }).onConflictDoNothing().run();
-        }
-        const pendingEdit = tx
-          .select()
+          .where(eq(deletedTransactions.transactionId, pendingId)),
+      )
+      .onConflictDoNothing(),
+    db
+      .insert(transactionEdits)
+      .select(
+        db
+          .select({
+            transactionId: newId,
+            name: transactionEdits.name,
+            date: transactionEdits.date,
+            amountCents: transactionEdits.amountCents,
+          })
           .from(transactionEdits)
-          .where(eq(transactionEdits.transactionId, row.pendingTransactionId))
-          .get();
-        if (pendingEdit) {
-          tx.insert(transactionEdits)
-            .values({ ...pendingEdit, transactionId: row.id! })
-            .onConflictDoNothing()
-            .run();
-        }
-      }
-    }
+          .where(eq(transactionEdits.transactionId, pendingId)),
+      )
+      .onConflictDoNothing(),
+  ];
+}
 
-    const removedIds = page.removed.map((removed) => removed.transaction_id);
-    if (removedIds.length > 0) {
-      tx.delete(transactions).where(inArray(transactions.id, removedIds)).run();
-    }
+async function applyChanges(item: Item, page: SyncPage) {
+  const db = getDb();
+  const statements: BatchItem<"sqlite">[] = page.accounts.map((account) => upsertAccount(db, item.id, account));
 
-    tx.update(items)
-      .set({
-        cursor: page.cursor,
-        historyStatus: page.historyStatus,
-        status: "ok",
-        errorCode: null,
-        lastSyncedAt: new Date().toISOString(),
-      })
-      .where(eq(items.id, item.id))
-      .run();
-  });
+  for (const plaidTx of [...page.added, ...page.modified]) {
+    const row = toRow(plaidTx);
+    statements.push(db.insert(transactions).values(row).onConflictDoUpdate({ target: transactions.id, set: row }));
+    if (row.pendingTransactionId) statements.push(...carryOverFromPending(db, row.id!, row.pendingTransactionId));
+  }
+
+  const removedIds = page.removed.map((removed) => removed.transaction_id);
+  for (let start = 0; start < removedIds.length; start += MAX_BOUND_PARAMETERS) {
+    const chunk = removedIds.slice(start, start + MAX_BOUND_PARAMETERS);
+    statements.push(db.delete(transactions).where(inArray(transactions.id, chunk)));
+  }
+
+  const saveCursor = db
+    .update(items)
+    .set({
+      cursor: page.cursor,
+      historyStatus: page.historyStatus,
+      status: "ok",
+      errorCode: null,
+      lastSyncedAt: new Date().toISOString(),
+    })
+    .where(eq(items.id, item.id));
+  await db.batch([saveCursor, ...statements]);
 }
 
 export async function syncItem(item: Item): Promise<SyncResult> {
@@ -192,7 +202,7 @@ export async function syncItem(item: Item): Promise<SyncResult> {
   }
   try {
     const page = await fetchChanges(item);
-    applyChanges(item, page);
+    await applyChanges(item, page);
     return {
       ...base,
       ok: true,
@@ -206,20 +216,19 @@ export async function syncItem(item: Item): Promise<SyncResult> {
       `[sync] ${item.institutionName} failed: ${failure.code} ${failure.message}` +
         (failure.requestId ? ` (request_id ${failure.requestId})` : ""),
     );
-    getDb()
+    await getDb()
       .update(items)
       .set({
         status: RECONNECT_CODES.has(failure.code) ? "needs_reconnect" : "error",
         errorCode: failure.code,
       })
-      .where(eq(items.id, item.id))
-      .run();
+      .where(eq(items.id, item.id));
     return { ...base, ok: false, added: 0, modified: 0, removed: 0, errorCode: failure.code };
   }
 }
 
 export function syncAll(): Promise<SyncResult[]> {
-  const run = async () => Promise.all(getDb().select().from(items).all().map(syncItem));
+  const run = async () => Promise.all((await getDb().select().from(items)).map(syncItem));
   globalForSync.financeSync ??= run().finally(() => {
     globalForSync.financeSync = undefined;
   });
@@ -228,6 +237,6 @@ export function syncAll(): Promise<SyncResult[]> {
 
 export async function syncItemById(itemId: string): Promise<SyncResult | undefined> {
   await globalForSync.financeSync;
-  const item = getDb().select().from(items).where(eq(items.id, itemId)).get();
+  const item = await getDb().select().from(items).where(eq(items.id, itemId)).get();
   return item ? syncItem(item) : undefined;
 }

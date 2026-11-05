@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
   try {
     if (typeof itemId === "string") {
-      const item = getDb().select().from(items).where(eq(items.id, itemId)).get();
+      const item = await getDb().select().from(items).where(eq(items.id, itemId)).get();
       if (!item) return badRequest("Unknown connection");
       const { data } = await plaid().linkTokenCreate({ ...base, access_token: item.accessToken });
       return NextResponse.json({ linkToken: data.link_token });

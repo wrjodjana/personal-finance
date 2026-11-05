@@ -10,14 +10,14 @@ export async function POST(request: Request) {
   if (typeof removed !== "boolean") return badRequest("Missing removed");
 
   const db = getDb();
-  if (!db.select({ id: transactions.id }).from(transactions).where(eq(transactions.id, transactionId)).get()) {
+  if (!(await db.select({ id: transactions.id }).from(transactions).where(eq(transactions.id, transactionId)).get())) {
     return badRequest("Unknown transaction");
   }
 
   if (removed) {
-    db.insert(removedTransactions).values({ transactionId }).onConflictDoNothing().run();
+    await db.insert(removedTransactions).values({ transactionId }).onConflictDoNothing();
   } else {
-    db.delete(removedTransactions).where(eq(removedTransactions.transactionId, transactionId)).run();
+    await db.delete(removedTransactions).where(eq(removedTransactions.transactionId, transactionId));
   }
   return NextResponse.json({ ok: true });
 }

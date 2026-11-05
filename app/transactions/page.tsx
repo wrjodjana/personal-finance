@@ -157,12 +157,12 @@ export default async function TransactionsPage({
   const month = parseMonth(params.month);
   const filters = parseFilters(params);
   const entries = sortEntries(
-    loadLedger(month, month).filter((entry) => matchesFilters(entry, filters)),
+    (await loadLedger(month, month)).filter((entry) => matchesFilters(entry, filters)),
     filters,
   );
   const days = filters.sort === "date" ? groupByDay(entries) : [];
 
-  const accountOptions = getDb()
+  const accountRows = await getDb()
     .select({
       id: accounts.id,
       name: accounts.name,
@@ -174,21 +174,21 @@ export default async function TransactionsPage({
     .innerJoin(items, eq(accounts.itemId, items.id))
     .where(inArray(accounts.type, SPENDING_ACCOUNT_TYPES))
     .orderBy(items.institutionName, accounts.name)
-    .all()
-    .map((row) => ({
-      value: row.id,
-      name: row.name,
-      mask: row.mask,
-      institution: row.institution,
-      logoUrl: institutionLogoUrl(row.item),
-      color: row.item.primaryColor,
-    }));
+    .all();
+  const accountOptions = accountRows.map((row) => ({
+    value: row.id,
+    name: row.name,
+    mask: row.mask,
+    institution: row.institution,
+    logoUrl: institutionLogoUrl(row.item),
+    color: row.item.primaryColor,
+  }));
 
-  const trashCount = getDb().select({ total: count() }).from(deletedTransactions).get()?.total ?? 0;
+  const trashCount = (await getDb().select({ total: count() }).from(deletedTransactions).get())?.total ?? 0;
 
   const categoryOptions = CATEGORY_KEYS.map((key) => ({ value: key, label: CATEGORIES[key].label }));
   const categoryFilterOptions = CATEGORY_KEYS.map((key) => ({ value: key, label: CATEGORIES[key].label, color: CATEGORIES[key].color }));
-  const monthOptions = availableMonths().map((value) => ({ value, label: monthLabel(value, "medium") }));
+  const monthOptions = (await availableMonths()).map((value) => ({ value, label: monthLabel(value, "medium") }));
 
   return (
     <div className="space-y-4">

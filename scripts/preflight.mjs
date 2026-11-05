@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 
-const mustBeIgnored = [".env", "data/finance.db"];
+const mustBeIgnored = [".env", ".dev.vars", ".wrangler/state", "data/finance.db"];
 
 function git(args) {
   try {

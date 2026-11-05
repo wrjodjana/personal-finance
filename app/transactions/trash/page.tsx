@@ -9,10 +9,10 @@ import { plaidConfigured } from "@/lib/plaid";
 
 export const dynamic = "force-dynamic";
 
-export default function TrashPage() {
+export default async function TrashPage() {
   if (!plaidConfigured()) return <SetupNotice />;
 
-  const entries = loadTrash();
+  const entries = await loadTrash();
 
   return (
     <div className="space-y-4">

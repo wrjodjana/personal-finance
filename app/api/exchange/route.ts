@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const db = getDb();
     if (typeof institutionId === "string") {
       const newMasks = new Set(accountData.accounts.map((account) => account.mask).filter(Boolean));
-      const sameBank = db
+      const sameBank = await db
         .select({ mask: accounts.mask })
         .from(items)
         .innerJoin(accounts, eq(accounts.itemId, items.id))
@@ -32,15 +32,14 @@ export async function POST(request: Request) {
       }
     }
 
-    db.insert(items)
+    await db.insert(items)
       .values({
         id: exchange.item_id,
         accessToken: exchange.access_token,
         institutionId: typeof institutionId === "string" ? institutionId : null,
         institutionName: typeof institutionName === "string" ? institutionName : "Bank",
-      })
-      .run();
-    saveAccounts(exchange.item_id, accountData.accounts);
+      });
+    await saveAccounts(exchange.item_id, accountData.accounts);
 
     const result = await syncItemById(exchange.item_id);
     return NextResponse.json({ ok: true, result });

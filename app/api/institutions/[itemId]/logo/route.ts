@@ -5,7 +5,7 @@ import { items } from "@/lib/schema";
 
 export async function GET(_request: NextRequest, ctx: RouteContext<"/api/institutions/[itemId]/logo">) {
   const { itemId } = await ctx.params;
-  const item = getDb()
+  const item = await getDb()
     .select({ logo: items.logo, logoType: items.logoType })
     .from(items)
     .where(eq(items.id, itemId))
