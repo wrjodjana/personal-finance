@@ -13,6 +13,8 @@ export const CATEGORIES: Record<string, CategoryMeta> = {
   GENERAL_SERVICES: { label: "Services", color: "#14b8a6", spending: true },
   GOVERNMENT_AND_NON_PROFIT: { label: "Government & donations", color: "#64748b", spending: true },
   BANK_FEES: { label: "Bank fees", color: "#78716c", spending: true },
+  PAYMENT_APPS: { label: "Zelle & Venmo", color: "#eab308", spending: true },
+  INVESTING: { label: "Investing", color: "#22c55e", spending: true },
   UNCATEGORIZED: { label: "Other", color: "#a8a29e", spending: true },
   NOT_SPENDING: { label: "Not spending", color: "#94a3b8", spending: false },
 };
@@ -20,6 +22,22 @@ export const CATEGORIES: Record<string, CategoryMeta> = {
 export const CATEGORY_KEYS = Object.keys(CATEGORIES);
 
 const PLAID_NOT_SPENDING = new Set(["INCOME", "TRANSFER_IN", "TRANSFER_OUT", "LOAN_PAYMENTS", "LOAN_DISBURSEMENTS"]);
+
+export function automaticCategory(tx: {
+  name: string;
+  merchantName: string | null;
+  plaidCategory: string | null;
+  plaidCategoryDetailed: string | null;
+  amountCents: number;
+}): string {
+  const text = `${tx.merchantName ?? ""} ${tx.name}`.toLowerCase();
+  const outflow = tx.amountCents > 0;
+  if (text.includes("zelle") || text.includes("venmo")) return outflow ? "PAYMENT_APPS" : "NOT_SPENDING";
+  if (text.includes("robinhood") || tx.plaidCategoryDetailed === "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS") {
+    return outflow ? "INVESTING" : "NOT_SPENDING";
+  }
+  return tx.plaidCategory ?? "UNCATEGORIZED";
+}
 
 export function normalizeCategory(key: string): string {
   if (PLAID_NOT_SPENDING.has(key)) return "NOT_SPENDING";

@@ -1,5 +1,5 @@
 import { desc, eq, inArray, sql } from "drizzle-orm";
-import { isSpendingCategory, normalizeCategory } from "./categories";
+import { automaticCategory, isSpendingCategory, normalizeCategory } from "./categories";
 import { getDb } from "./db";
 import { addMonths, currentMonth, monthEnd, monthStart } from "./months";
 import { accounts, categoryOverrides, items, rules, transactions } from "./schema";
@@ -61,7 +61,7 @@ export function loadLedger(fromMonth: string, toMonth: string): LedgerEntry[] {
 
   const entries: LedgerEntry[] = rows.map(({ tx, override, accountName, accountMask, institution }) => {
     const merchant = tx.merchantName ?? tx.name;
-    let category = tx.plaidCategory ?? "UNCATEGORIZED";
+    let category = automaticCategory(tx);
     let categorySource: CategorySource = "plaid";
     const rule = matchRule(ruleList, merchant, tx.name);
     if (override) {
