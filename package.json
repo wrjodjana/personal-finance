@@ -12,7 +12,8 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "db:import": "node scripts/import-local-db.mjs"
+    "db:import": "node scripts/import-local-db.mjs",
+    "db:pull": "node scripts/pull-remote-db.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.20.16",
