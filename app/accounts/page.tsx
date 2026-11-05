@@ -1,6 +1,8 @@
 import { count, eq } from "drizzle-orm";
+import { InstitutionLogo } from "@/components/InstitutionLogo";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
 import { SetupNotice } from "@/components/SetupNotice";
+import { institutionLogoUrl } from "@/lib/branding";
 import { getDb } from "@/lib/db";
 import { plaidConfigured } from "@/lib/plaid";
 import { accounts, items, transactions } from "@/lib/schema";
@@ -87,9 +89,7 @@ export default function AccountsPage() {
           <section key={item.id} className="card">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/70 px-5 py-3.5">
               <div className="flex items-center gap-3">
-                <span className="grid size-8 place-items-center rounded-lg border border-edge bg-surface text-sm font-medium text-muted">
-                  {item.institutionName.charAt(0)}
-                </span>
+                <InstitutionLogo name={item.institutionName} logoUrl={institutionLogoUrl(item)} color={item.primaryColor} />
                 <div>
                   <h2 className="text-sm font-medium">{item.institutionName}</h2>
                   <Status status={item.status} errorCode={item.errorCode} importing={importing} />

@@ -1,5 +1,6 @@
 import { eq, inArray } from "drizzle-orm";
 import type { AccountBase, RemovedTransaction, Transaction } from "plaid";
+import { refreshBranding } from "./branding";
 import { getDb } from "./db";
 import { plaid, RECONNECT_CODES, toPlaidFailure } from "./plaid";
 import {
@@ -183,6 +184,12 @@ function applyChanges(item: Item, page: SyncPage) {
 
 export async function syncItem(item: Item): Promise<SyncResult> {
   const base = { itemId: item.id, institutionName: item.institutionName };
+  if (!item.brandingFetchedAt) {
+    await refreshBranding(item).catch((error) => {
+      const failure = toPlaidFailure(error);
+      console.error(`[sync] ${item.institutionName} branding failed: ${failure.code} ${failure.message}`);
+    });
+  }
   try {
     const page = await fetchChanges(item);
     applyChanges(item, page);

@@ -1,5 +1,6 @@
 import { desc, eq, inArray, sql } from "drizzle-orm";
 import { automaticCategory, isSpendingCategory, normalizeCategory } from "./categories";
+import { institutionLogoUrl } from "./branding";
 import { getDb } from "./db";
 import { addMonths, currentMonth, monthEnd, monthStart } from "./months";
 import {
@@ -27,7 +28,7 @@ export type LedgerEntry = {
   description: string;
   pending: boolean;
   accountId: string;
-  account: { name: string; mask: string | null; institution: string };
+  account: { name: string; mask: string | null; institution: string; logoUrl: string | null; color: string | null };
   category: string;
   categorySource: CategorySource;
   isSpending: boolean;
@@ -71,6 +72,7 @@ function loadEntries(): LedgerEntry[] {
       accountName: accounts.name,
       accountMask: accounts.mask,
       institution: items.institutionName,
+      item: { id: items.id, logoType: items.logoType, brandingFetchedAt: items.brandingFetchedAt, primaryColor: items.primaryColor },
     })
     .from(transactions)
     .innerJoin(accounts, eq(transactions.accountId, accounts.id))
@@ -82,7 +84,7 @@ function loadEntries(): LedgerEntry[] {
     .where(inArray(accounts.type, SPENDING_ACCOUNT_TYPES))
     .all();
 
-  const entries = rows.map(({ tx, override, removedAt, deletedAt, edit, accountName, accountMask, institution }) => {
+  const entries = rows.map(({ tx, override, removedAt, deletedAt, edit, accountName, accountMask, institution, item }) => {
     const bankMerchant = tx.merchantName ?? tx.name;
     const merchant = edit?.name ?? bankMerchant;
     const date = edit?.date ?? tx.date;
@@ -108,7 +110,13 @@ function loadEntries(): LedgerEntry[] {
       description: tx.name,
       pending: tx.pending,
       accountId: tx.accountId,
-      account: { name: accountName, mask: accountMask, institution },
+      account: {
+        name: accountName,
+        mask: accountMask,
+        institution,
+        logoUrl: institutionLogoUrl(item),
+        color: item.primaryColor,
+      },
       category,
       categorySource,
       isSpending: !removedAt && !deletedAt && isSpendingCategory(category),

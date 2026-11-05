@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { InstitutionLogo } from "@/components/InstitutionLogo";
 import { MerchantAvatar } from "@/components/MerchantAvatar";
 import { RestoreButton } from "@/components/RestoreButton";
 import { SetupNotice } from "@/components/SetupNotice";
@@ -46,7 +47,7 @@ export default function TrashPage() {
                     </div>
                   </div>
                   <div className="hidden min-w-0 items-center gap-2 sm:flex">
-                    <MerchantAvatar name={entry.account.institution} logoUrl={null} size={16} />
+                    <InstitutionLogo name={entry.account.institution} logoUrl={entry.account.logoUrl} color={entry.account.color} size={16} />
                     <span className="truncate text-xs text-muted">{entry.account.name}</span>
                     {entry.account.mask && <span className="tabular shrink-0 text-xs text-faint">{entry.account.mask}</span>}
                   </div>

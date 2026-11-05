@@ -1,6 +1,7 @@
 import { count, eq, inArray } from "drizzle-orm";
 import Link from "next/link";
 import { CategoryCell } from "@/components/CategoryCell";
+import { InstitutionLogo } from "@/components/InstitutionLogo";
 import { MerchantAvatar } from "@/components/MerchantAvatar";
 import { MonthPicker } from "@/components/MonthPicker";
 import { RowMenu } from "@/components/RowMenu";
@@ -187,7 +188,7 @@ export default async function TransactionsPage({
                         className="col-span-2 col-start-2 row-start-2 flex w-0 min-w-full items-center justify-end gap-2 sm:col-span-1 sm:w-auto sm:min-w-0 sm:col-start-auto sm:row-start-auto sm:justify-start"
                         title={accountLabel(entry.account.institution, entry.account.name, entry.account.mask)}
                       >
-                        <MerchantAvatar name={entry.account.institution} logoUrl={null} size={16} />
+                        <InstitutionLogo name={entry.account.institution} logoUrl={entry.account.logoUrl} color={entry.account.color} size={16} />
                         <span className="truncate text-xs text-muted">{entry.account.name}</span>
                         {entry.account.mask && <span className="tabular shrink-0 text-xs text-faint">{entry.account.mask}</span>}
                       </div>

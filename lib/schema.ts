@@ -1,11 +1,15 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { blob, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const items = sqliteTable("items", {
   id: text("id").primaryKey(),
   accessToken: text("access_token").notNull(),
   institutionId: text("institution_id"),
   institutionName: text("institution_name").notNull(),
+  logo: blob("logo", { mode: "buffer" }),
+  logoType: text("logo_type"),
+  primaryColor: text("primary_color"),
+  brandingFetchedAt: text("branding_fetched_at"),
   cursor: text("cursor"),
   status: text("status", { enum: ["ok", "needs_reconnect", "error"] }).notNull().default("ok"),
   errorCode: text("error_code"),
