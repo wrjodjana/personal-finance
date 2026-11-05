@@ -4,7 +4,7 @@ import { MerchantAvatar } from "@/components/MerchantAvatar";
 import { MonthPicker } from "@/components/MonthPicker";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
 import { SetupNotice } from "@/components/SetupNotice";
-import { SpendingChart, type ChartRow } from "@/components/SpendingChart";
+import { SpendingChart, type ChartRow, type ChartSeries } from "@/components/SpendingChart";
 import { categoryMeta } from "@/lib/categories";
 import { getDb } from "@/lib/db";
 import { availableMonths, loadLedger, monthRange, summarize, type LedgerEntry } from "@/lib/ledger";
@@ -78,12 +78,25 @@ export default async function SpendingPage({
   const merchants = topMerchants(monthEntries);
   const largest = [...spendingEntries].sort((a, b) => b.amountCents - a.amountCents).slice(0, 5);
 
-  const rows: ChartRow[] = chartMonths.map((chartMonth) => ({
+  const monthSummaries = chartMonths.map((chartMonth) => summarize(ledger, chartMonth));
+  const yearTotals = new Map<string, number>();
+  for (const monthSummary of monthSummaries) {
+    for (const item of monthSummary.categories) {
+      if (item.cents > 0) yearTotals.set(item.category, (yearTotals.get(item.category) ?? 0) + item.cents);
+    }
+  }
+  const series: ChartSeries[] = [...yearTotals.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([category]) => ({ key: category, label: categoryMeta(category).label, color: categoryMeta(category).color }));
+  const rows: ChartRow[] = chartMonths.map((chartMonth, index) => ({
     month: chartMonth,
     label: monthLabel(chartMonth, "short").split(" ")[0],
     longLabel: monthLabel(chartMonth),
-    total: summarize(ledger, chartMonth).totalCents / 100,
+    total: monthSummaries[index].totalCents / 100,
     selected: chartMonth === month,
+    values: Object.fromEntries(
+      monthSummaries[index].categories.filter((item) => item.cents > 0).map((item) => [item.category, item.cents / 100]),
+    ),
   }));
 
   const purchasesCents = summary.categories.reduce((sum, item) => sum + Math.max(item.cents, 0), 0);
@@ -159,13 +172,7 @@ export default async function SpendingPage({
       </div>
 
       <section className="card px-4 pt-4 pb-3">
-        <div className="flex items-baseline justify-between px-1">
-          <h2 className="text-sm font-medium">Monthly spending</h2>
-          <p className="label">Past 12 months</p>
-        </div>
-        <div className="mt-3">
-          <SpendingChart rows={rows} />
-        </div>
+        <SpendingChart rows={rows} series={series} />
       </section>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
