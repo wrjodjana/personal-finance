@@ -2,10 +2,6 @@ import { Configuration, PlaidApi, PlaidEnvironments } from "plaid";
 
 const globalForPlaid = globalThis as unknown as { plaidClient?: { key: string; api: PlaidApi } };
 
-export function plaidEnv(): "sandbox" | "production" {
-  return process.env.PLAID_ENV === "production" ? "production" : "sandbox";
-}
-
 export function plaidConfigured(): boolean {
   return Boolean(process.env.PLAID_CLIENT_ID && process.env.PLAID_SECRET);
 }
@@ -14,13 +10,13 @@ export function plaid(): PlaidApi {
   if (!plaidConfigured()) {
     throw new Error("PLAID_CLIENT_ID and PLAID_SECRET must be set in .env");
   }
-  const key = `${plaidEnv()}:${process.env.PLAID_CLIENT_ID}:${process.env.PLAID_SECRET}`;
+  const key = `${process.env.PLAID_CLIENT_ID}:${process.env.PLAID_SECRET}`;
   if (globalForPlaid.plaidClient?.key !== key) {
     globalForPlaid.plaidClient = {
       key,
       api: new PlaidApi(
         new Configuration({
-          basePath: PlaidEnvironments[plaidEnv()],
+          basePath: PlaidEnvironments.production,
           baseOptions: {
             headers: {
               "PLAID-CLIENT-ID": process.env.PLAID_CLIENT_ID,

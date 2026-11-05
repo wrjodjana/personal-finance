@@ -11,16 +11,11 @@ export function SetupNotice() {
           <code className="rounded bg-stone-100 px-1.5 py-0.5">.env</code>.
         </li>
         <li>
-          Put your client ID and secret from{" "}
+          Put your Production client ID and secret from{" "}
           <a className="font-medium underline" href="https://dashboard.plaid.com/developers/keys">
             dashboard.plaid.com
           </a>{" "}
           in it.
-        </li>
-        <li>
-          Set <code className="rounded bg-stone-100 px-1.5 py-0.5">PLAID_ENV</code> to{" "}
-          <code className="rounded bg-stone-100 px-1.5 py-0.5">sandbox</code> or{" "}
-          <code className="rounded bg-stone-100 px-1.5 py-0.5">production</code>, then restart the app.
         </li>
       </ol>
     </div>

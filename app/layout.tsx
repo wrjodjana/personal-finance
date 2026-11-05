@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Nav } from "@/components/Nav";
 import { RefreshButton } from "@/components/RefreshButton";
-import { plaidConfigured, plaidEnv } from "@/lib/plaid";
+import { plaidConfigured } from "@/lib/plaid";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -20,11 +20,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="sticky top-0 z-10 border-b border-stone-200/80 bg-[#f7f7f5]/90 backdrop-blur">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:px-6">
             <Nav />
-            {configured && plaidEnv() === "sandbox" && (
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                Sandbox
-              </span>
-            )}
             {configured && (
               <div className="ml-auto">
                 <RefreshButton />
