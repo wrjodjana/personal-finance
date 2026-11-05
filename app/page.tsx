@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CategoryPie, type PieSlice } from "@/components/CategoryPie";
 import { MerchantAvatar } from "@/components/MerchantAvatar";
 import { MonthPicker } from "@/components/MonthPicker";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
@@ -85,8 +86,19 @@ export default async function SpendingPage({
     selected: chartMonth === month,
   }));
 
-  const scale = Math.max(...summary.categories.map((item) => item.cents), 1);
   const purchasesCents = summary.categories.reduce((sum, item) => sum + Math.max(item.cents, 0), 0);
+  const slices: PieSlice[] = summary.categories
+    .filter((item) => item.cents > 0)
+    .map((item) => {
+      const meta = categoryMeta(item.category);
+      return {
+        category: item.category,
+        label: meta.label,
+        color: meta.color,
+        cents: item.cents,
+        href: `/transactions?month=${month}&category=${item.category}`,
+      };
+    });
   const monthOptions = (await availableMonths()).map((value) => ({ value, label: monthLabel(value, "medium") }));
 
   return (
@@ -156,58 +168,61 @@ export default async function SpendingPage({
         </div>
       </section>
 
-      <section className="card">
-        <div className="flex items-baseline justify-between px-5 pt-4 pb-2">
-          <h2 className="text-sm font-medium">Categories</h2>
-          <Link href={`/transactions?month=${month}`} className="label hover:text-ink">
-            View all transactions →
-          </Link>
-        </div>
-        {summary.categories.length === 0 ? (
-          <p className="px-5 pt-6 pb-8 text-center text-sm text-muted">No spending in {monthLabel(month)}.</p>
-        ) : (
-          <ul className="pb-2">
-            {summary.categories.map((item) => {
-              const meta = categoryMeta(item.category);
-              const refund = item.cents < 0;
-              const share = purchasesCents > 0 && !refund ? (item.cents / purchasesCents) * 100 : 0;
-              return (
-                <li key={item.category}>
-                  <Link
-                    href={`/transactions?month=${month}&category=${item.category}`}
-                    className="grid grid-cols-[1fr_6.5rem_3.5rem] items-center gap-x-4 gap-y-1.5 px-5 py-2.5 transition hover:bg-surface sm:grid-cols-[11rem_1fr_6.5rem_3.5rem]"
-                  >
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <span className="size-2.5 shrink-0 rounded-full" style={{ background: meta.color }} />
-                      <span className="truncate text-sm">{meta.label}</span>
-                      <span className="tabular text-xs text-faint">{item.count}</span>
-                    </div>
-                    {refund ? (
-                      <span className="order-last col-span-3 text-xs text-positive sm:order-none sm:col-span-1">Net refund</span>
-                    ) : (
-                      <div className="order-last col-span-3 h-1.5 overflow-hidden rounded-full bg-line/70 sm:order-none sm:col-span-1">
-                        <div
-                          className="h-full rounded-full"
-                          style={{ width: `${(item.cents / scale) * 100}%`, background: meta.color }}
-                        />
-                      </div>
-                    )}
-                    <span
-                      className={`tabular whitespace-nowrap text-right text-sm font-medium ${refund ? "text-positive" : ""}`}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <section className="card">
+          <div className="flex items-baseline justify-between gap-4 px-5 pt-4 pb-2">
+            <h2 className="text-sm font-medium">Categories</h2>
+            <Link href={`/transactions?month=${month}`} className="label hover:text-ink">
+              View all transactions →
+            </Link>
+          </div>
+          {summary.categories.length === 0 ? (
+            <p className="px-5 pt-6 pb-8 text-center text-sm text-muted">No spending in {monthLabel(month)}.</p>
+          ) : (
+            <ul className="pb-2">
+              {summary.categories.map((item) => {
+                const meta = categoryMeta(item.category);
+                const refund = item.cents < 0;
+                const share = purchasesCents > 0 && !refund ? (item.cents / purchasesCents) * 100 : 0;
+                return (
+                  <li key={item.category}>
+                    <Link
+                      href={`/transactions?month=${month}&category=${item.category}`}
+                      className="grid grid-cols-[minmax(0,1fr)_5rem_2.75rem] items-center gap-x-3 px-5 py-2.5 transition sm:grid-cols-[minmax(0,1fr)_6.5rem_3.5rem] sm:gap-x-4 hover:bg-surface"
                     >
-                      {refund ? "+" : ""}
-                      {formatCents(Math.abs(item.cents))}
-                    </span>
-                    <span className="tabular whitespace-nowrap text-right text-xs text-muted">
-                      {refund ? "" : `${share.toFixed(1)}%`}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className="size-2.5 shrink-0 rounded-full" style={{ background: meta.color }} />
+                        <span className="truncate text-sm">{meta.label}</span>
+                        <span className="tabular text-xs text-faint">{item.count}</span>
+                      </div>
+                      <span
+                        className={`tabular whitespace-nowrap text-right text-sm font-medium ${refund ? "text-positive" : ""}`}
+                      >
+                        {refund ? "+" : ""}
+                        {formatCents(Math.abs(item.cents))}
+                      </span>
+                      <span className={`tabular whitespace-nowrap text-right text-xs ${refund ? "text-positive" : "text-muted"}`}>
+                        {refund ? "Refund" : `${share.toFixed(1)}%`}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        <section className="card px-5 pt-4 pb-5">
+          <h2 className="text-sm font-medium">Share of spending</h2>
+          {slices.length === 0 ? (
+            <p className="pt-6 pb-3 text-center text-sm text-muted">Nothing to show.</p>
+          ) : (
+            <div className="mt-4">
+              <CategoryPie slices={slices} />
+            </div>
+          )}
+        </section>
+      </div>
 
       <div className="grid gap-5 md:grid-cols-2">
         <section className="card">
