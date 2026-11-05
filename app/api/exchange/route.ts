@@ -1,0 +1,50 @@
+import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
+import { getDb } from "@/lib/db";
+import { badRequest, plaidErrorResponse, readJson } from "@/lib/http";
+import { plaid } from "@/lib/plaid";
+import { accounts, items } from "@/lib/schema";
+import { saveAccounts, syncItemById } from "@/lib/sync";
+
+export async function POST(request: Request) {
+  const { publicToken, institutionId, institutionName } = await readJson(request);
+  if (typeof publicToken !== "string") return badRequest("Missing publicToken");
+
+  try {
+    const { data: exchange } = await plaid().itemPublicTokenExchange({ public_token: publicToken });
+    const { data: accountData } = await plaid().accountsGet({ access_token: exchange.access_token });
+
+    const db = getDb();
+    if (typeof institutionId === "string") {
+      const newMasks = new Set(accountData.accounts.map((account) => account.mask).filter(Boolean));
+      const sameBank = db
+        .select({ mask: accounts.mask })
+        .from(items)
+        .innerJoin(accounts, eq(accounts.itemId, items.id))
+        .where(eq(items.institutionId, institutionId))
+        .all();
+      if (sameBank.some((row) => row.mask && newMasks.has(row.mask))) {
+        await plaid().itemRemove({ access_token: exchange.access_token });
+        return NextResponse.json(
+          { error: "These accounts are already connected. Use Fix on the Accounts page instead." },
+          { status: 409 },
+        );
+      }
+    }
+
+    db.insert(items)
+      .values({
+        id: exchange.item_id,
+        accessToken: exchange.access_token,
+        institutionId: typeof institutionId === "string" ? institutionId : null,
+        institutionName: typeof institutionName === "string" ? institutionName : "Bank",
+      })
+      .run();
+    saveAccounts(exchange.item_id, accountData.accounts);
+
+    const result = await syncItemById(exchange.item_id);
+    return NextResponse.json({ ok: true, result });
+  } catch (error) {
+    return plaidErrorResponse(error);
+  }
+}

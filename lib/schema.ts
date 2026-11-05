@@ -1,0 +1,61 @@
+import { sql } from "drizzle-orm";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+export const items = sqliteTable("items", {
+  id: text("id").primaryKey(),
+  accessToken: text("access_token").notNull(),
+  institutionId: text("institution_id"),
+  institutionName: text("institution_name").notNull(),
+  cursor: text("cursor"),
+  status: text("status", { enum: ["ok", "needs_reconnect", "error"] }).notNull().default("ok"),
+  errorCode: text("error_code"),
+  historyStatus: text("history_status"),
+  lastSyncedAt: text("last_synced_at"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const accounts = sqliteTable("accounts", {
+  id: text("id").primaryKey(),
+  itemId: text("item_id")
+    .notNull()
+    .references(() => items.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  officialName: text("official_name"),
+  mask: text("mask"),
+  type: text("type").notNull(),
+  subtype: text("subtype"),
+});
+
+export const transactions = sqliteTable(
+  "transactions",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    date: text("date").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    currency: text("currency"),
+    name: text("name").notNull(),
+    merchantName: text("merchant_name"),
+    plaidCategory: text("plaid_category"),
+    plaidCategoryDetailed: text("plaid_category_detailed"),
+    pending: integer("pending", { mode: "boolean" }).notNull(),
+    pendingTransactionId: text("pending_transaction_id"),
+  },
+  (table) => [index("transactions_date_idx").on(table.date)],
+);
+
+export const categoryOverrides = sqliteTable("category_overrides", {
+  transactionId: text("transaction_id")
+    .primaryKey()
+    .references(() => transactions.id, { onDelete: "cascade" }),
+  category: text("category").notNull(),
+});
+
+export const rules = sqliteTable("rules", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  pattern: text("pattern").notNull(),
+  category: text("category").notNull(),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
