@@ -1,5 +1,5 @@
 import { desc, eq, inArray, sql } from "drizzle-orm";
-import { isSpendingCategory } from "./categories";
+import { isSpendingCategory, normalizeCategory } from "./categories";
 import { getDb } from "./db";
 import { addMonths, currentMonth, monthEnd, monthStart } from "./months";
 import { accounts, categoryOverrides, items, rules, transactions } from "./schema";
@@ -71,6 +71,7 @@ export function loadLedger(fromMonth: string, toMonth: string): LedgerEntry[] {
       category = rule.category;
       categorySource = "rule";
     }
+    category = normalizeCategory(category);
     return {
       id: tx.id,
       date: tx.date,

@@ -4,7 +4,7 @@ import { MonthPicker } from "@/components/MonthPicker";
 import { Rules } from "@/components/Rules";
 import { SetupNotice } from "@/components/SetupNotice";
 import { TransactionFilters } from "@/components/TransactionFilters";
-import { CATEGORIES, CATEGORY_KEYS, categoryMeta } from "@/lib/categories";
+import { CATEGORIES, CATEGORY_KEYS, categoryMeta, normalizeCategory } from "@/lib/categories";
 import { getDb } from "@/lib/db";
 import { accountLabel, availableMonths, listRules, loadLedger, SPENDING_ACCOUNT_TYPES } from "@/lib/ledger";
 import { formatCents, formatDate, monthLabel, parseMonth } from "@/lib/months";
@@ -38,20 +38,12 @@ export default async function TransactionsPage({
     .all()
     .map((row) => ({ value: row.id, label: accountLabel(row.institution, row.name, row.mask) }));
 
-  const spendingOptions = CATEGORY_KEYS.filter((key) => CATEGORIES[key].spending).map((key) => ({
-    value: key,
-    label: CATEGORIES[key].label,
-  }));
-  const otherOptions = CATEGORY_KEYS.filter((key) => !CATEGORIES[key].spending).map((key) => ({
-    value: key,
-    label: `${CATEGORIES[key].label} (not spending)`,
-  }));
-  const categoryOptions = [...spendingOptions, ...otherOptions];
+  const categoryOptions = CATEGORY_KEYS.map((key) => ({ value: key, label: CATEGORIES[key].label }));
   const monthOptions = availableMonths().map((value) => ({ value, label: monthLabel(value) }));
   const rules = listRules().map((rule) => ({
     id: rule.id,
     pattern: rule.pattern,
-    categoryLabel: categoryMeta(rule.category).label,
+    categoryLabel: categoryMeta(normalizeCategory(rule.category)).label,
   }));
 
   return (

@@ -13,15 +13,19 @@ export const CATEGORIES: Record<string, CategoryMeta> = {
   GENERAL_SERVICES: { label: "Services", color: "#14b8a6", spending: true },
   GOVERNMENT_AND_NON_PROFIT: { label: "Government & donations", color: "#64748b", spending: true },
   BANK_FEES: { label: "Bank fees", color: "#78716c", spending: true },
-  UNCATEGORIZED: { label: "Uncategorized", color: "#a8a29e", spending: true },
-  INCOME: { label: "Income", color: "#16a34a", spending: false },
-  TRANSFER_IN: { label: "Transfer in", color: "#94a3b8", spending: false },
-  TRANSFER_OUT: { label: "Transfer out", color: "#94a3b8", spending: false },
-  LOAN_PAYMENTS: { label: "Card & loan payments", color: "#94a3b8", spending: false },
-  LOAN_DISBURSEMENTS: { label: "Loan disbursements", color: "#94a3b8", spending: false },
+  UNCATEGORIZED: { label: "Other", color: "#a8a29e", spending: true },
+  NOT_SPENDING: { label: "Not spending", color: "#94a3b8", spending: false },
 };
 
 export const CATEGORY_KEYS = Object.keys(CATEGORIES);
+
+const PLAID_NOT_SPENDING = new Set(["INCOME", "TRANSFER_IN", "TRANSFER_OUT", "LOAN_PAYMENTS", "LOAN_DISBURSEMENTS"]);
+
+export function normalizeCategory(key: string): string {
+  if (PLAID_NOT_SPENDING.has(key)) return "NOT_SPENDING";
+  if (key === "OTHER") return "UNCATEGORIZED";
+  return key;
+}
 
 export function categoryMeta(key: string): CategoryMeta {
   return (

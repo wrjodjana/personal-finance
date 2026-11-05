@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { categoryMeta } from "@/lib/categories";
 
 type Option = { value: string; label: string };
 
@@ -54,6 +55,9 @@ export function CategoryCell({ transactionId, merchant, category, source, option
           onChange={(event) => change(event.target.value)}
           className="max-w-44 cursor-pointer truncate rounded-lg border border-transparent bg-transparent py-1 pr-1 text-sm text-stone-700 hover:border-stone-200 hover:bg-white focus:border-stone-300 focus:bg-white focus:outline-none disabled:opacity-50"
         >
+          {!options.some((option) => option.value === category) && (
+            <option value={category}>{categoryMeta(category).label}</option>
+          )}
           {options.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
