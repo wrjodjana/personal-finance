@@ -68,15 +68,17 @@ const setupPage = () =>
     `<h1>Turn on sign-in first</h1>
 <p>Your bank data stays hidden until only you can open this app.</p>
 <ol>
-  <li>In the Cloudflare dashboard, open <b>Workers &amp; Pages</b>, then this Worker.</li>
-  <li>Open <b>Settings</b> &gt; <b>Domains &amp; Routes</b> and click <b>Enable Cloudflare Access</b> for workers.dev.</li>
-  <li>Copy the two values it shows. Add them in <b>Settings</b> &gt; <b>Variables and Secrets</b> as <code>TEAM_DOMAIN</code> and <code>POLICY_AUD</code>.</li>
-  <li>Open this page again and sign in with your email.</li>
-</ol>`,
+  <li>In the Cloudflare dashboard, open <b>Workers &amp; Pages</b>. If it asks, click <b>Set up Zero Trust</b> and choose the Free plan.</li>
+  <li>Open this Worker, then <b>Settings</b> &gt; <b>Domains &amp; Routes</b>, and click <b>Enable Cloudflare Access</b>.</li>
+  <li>Choose <b>All traffic</b> and the <b>Cloudflare account</b> policy, then click <b>Apply Access</b>.</li>
+  <li>Add the <b>JWKS</b> URL as the secret <code>TEAM_DOMAIN</code> and the <b>AUD tag</b> as the secret <code>POLICY_AUD</code>, in <b>Settings</b> &gt; <b>Variables and Secrets</b>.</li>
+  <li>Open this page again and sign in.</li>
+</ol>
+<p>Full guide: docs/deploy.md in the repo.</p>`,
   );
 
 const deniedPage = () =>
-  page(403, "Sign in required", `<h1>Sign in required</h1><p>Open this app from its usual address and sign in with your email.</p>`);
+  page(403, "Sign in required", `<h1>Sign in required</h1><p>Open this app from its usual address and sign in.</p>`);
 
 export default {
   async fetch(request, env, ctx) {
