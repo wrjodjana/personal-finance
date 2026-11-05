@@ -18,7 +18,7 @@
     {
       "binding": "DB",
       "database_name": "personal-finance",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "51073afa-5206-4855-b244-52564d55567a",
       "migrations_dir": "drizzle"
     }
   ],
