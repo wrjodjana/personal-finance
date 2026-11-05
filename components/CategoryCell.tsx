@@ -49,11 +49,13 @@ export function CategoryCell({ transactionId, merchant, category, source, option
   return (
     <div className="flex flex-col items-start gap-1">
       <div className="flex items-center gap-1.5">
+        <span className="size-2 shrink-0 rounded-full" style={{ background: categoryMeta(category).color }} />
         <select
           value={category}
           disabled={busy}
           onChange={(event) => change(event.target.value)}
-          className="max-w-44 cursor-pointer truncate rounded-lg border border-transparent bg-transparent py-1 pr-1 text-sm text-stone-700 hover:border-stone-200 hover:bg-white focus:border-stone-300 focus:bg-white focus:outline-none disabled:opacity-50"
+          aria-label={`Category for ${merchant}`}
+          className="-ml-1 max-w-40 cursor-pointer truncate rounded-md border border-transparent bg-transparent px-1 py-0.5 text-sm text-muted hover:border-edge hover:bg-canvas hover:text-ink focus:border-edge focus:bg-canvas focus:outline-none disabled:opacity-50"
         >
           {!options.some((option) => option.value === category) && (
             <option value={category}>{categoryMeta(category).label}</option>
@@ -66,7 +68,7 @@ export function CategoryCell({ transactionId, merchant, category, source, option
           {source === "override" && <option value={RESET}>↺ Reset to automatic</option>}
         </select>
         {source !== "plaid" && (
-          <span className="rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-stone-500">
+          <span className="rounded bg-surface px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-faint">
             {source === "rule" ? "Rule" : "Edited"}
           </span>
         )}
@@ -76,7 +78,7 @@ export function CategoryCell({ transactionId, merchant, category, source, option
           type="button"
           onClick={makeRule}
           disabled={busy}
-          className="text-left text-xs font-medium text-sky-700 hover:underline disabled:opacity-50"
+          className="text-left text-xs font-medium text-ink underline decoration-line underline-offset-2 hover:decoration-ink disabled:opacity-50"
         >
           Always use this for “{merchant}”
         </button>

@@ -14,6 +14,7 @@ export type LedgerEntry = {
   month: string;
   amountCents: number;
   merchant: string;
+  logoUrl: string | null;
   description: string;
   pending: boolean;
   accountId: string;
@@ -81,6 +82,7 @@ export function loadLedger(fromMonth: string, toMonth: string): LedgerEntry[] {
       month: tx.date.slice(0, 7),
       amountCents: tx.amountCents,
       merchant,
+      logoUrl: tx.logoUrl,
       description: tx.name,
       pending: tx.pending,
       accountId: tx.accountId,

@@ -23,8 +23,8 @@ export function RemoveButton({ transactionId, removed }: { transactionId: string
       type="button"
       onClick={toggle}
       disabled={busy}
-      className={`rounded-md px-2 py-1 text-xs font-medium transition disabled:opacity-40 ${
-        removed ? "text-sky-700 hover:bg-sky-50" : "text-stone-400 hover:bg-red-50 hover:text-red-600"
+      className={`whitespace-nowrap rounded-md px-2 py-1 text-xs transition disabled:opacity-40 ${
+        removed ? "font-medium text-ink hover:bg-surface" : "text-faint hover:bg-negative/5 hover:text-negative"
       }`}
     >
       {removed ? "Count again" : "Don't count"}

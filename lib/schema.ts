@@ -38,6 +38,7 @@ export const transactions = sqliteTable(
     currency: text("currency"),
     name: text("name").notNull(),
     merchantName: text("merchant_name"),
+    logoUrl: text("logo_url"),
     plaidCategory: text("plaid_category"),
     plaidCategoryDetailed: text("plaid_category_detailed"),
     pending: integer("pending", { mode: "boolean" }).notNull(),

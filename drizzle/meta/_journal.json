@@ -15,6 +15,13 @@
       "when": 1793874756982,
       "tag": "0001_removed_transactions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793875419048,
+      "tag": "0002_merchant_logos",
+      "breakpoints": true
     }
   ]
 }

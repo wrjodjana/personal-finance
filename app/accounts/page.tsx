@@ -1,33 +1,45 @@
+import { count, eq } from "drizzle-orm";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
 import { SetupNotice } from "@/components/SetupNotice";
 import { getDb } from "@/lib/db";
 import { plaidConfigured } from "@/lib/plaid";
-import { accounts, items } from "@/lib/schema";
+import { accounts, items, transactions } from "@/lib/schema";
 
 export const dynamic = "force-dynamic";
 
 const CONNECTION_LIMIT = 20;
 
-function lastSynced(iso: string | null): string {
+function syncedAgo(iso: string | null): string {
   if (!iso) return "Never synced";
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (minutes < 1) return "Synced just now";
-  if (minutes < 60) return `Synced ${minutes} min ago`;
+  if (minutes < 60) return `Synced ${minutes}m ago`;
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `Synced ${hours} h ago`;
+  if (hours < 24) return `Synced ${hours}h ago`;
   return `Synced ${new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 }
 
-function StatusBadge({ status, errorCode }: { status: string; errorCode: string | null }) {
-  if (status === "ok") {
-    return <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Connected</span>;
-  }
+function Status({ status, errorCode, importing }: { status: string; errorCode: string | null; importing: boolean }) {
   if (status === "needs_reconnect") {
-    return <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Needs reconnect</span>;
+    return (
+      <span className="flex items-center gap-1.5 text-xs font-medium text-negative">
+        <span className="size-2 rounded-full bg-negative" />
+        Action required
+      </span>
+    );
+  }
+  if (status === "error") {
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-negative" title={errorCode ?? undefined}>
+        <span className="size-2 rounded-full bg-negative" />
+        Sync error{errorCode ? `: ${errorCode}` : ""}
+      </span>
+    );
   }
   return (
-    <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700" title={errorCode ?? undefined}>
-      Sync error{errorCode ? `: ${errorCode}` : ""}
+    <span className="flex items-center gap-1.5 text-xs text-muted">
+      <span className={`size-2 rounded-full ${importing ? "animate-pulse bg-faint" : "bg-positive"}`} />
+      {importing ? "Importing history" : "Connected"}
     </span>
   );
 }
@@ -38,54 +50,74 @@ export default function AccountsPage() {
   const db = getDb();
   const connections = db.select().from(items).all();
   const allAccounts = db.select().from(accounts).all();
+  const counts = new Map(
+    db
+      .select({ accountId: transactions.accountId, total: count() })
+      .from(transactions)
+      .groupBy(transactions.accountId)
+      .all()
+      .map((row) => [row.accountId, row.total]),
+  );
+  const totalAccounts = allAccounts.length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="space-y-5">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Accounts</h1>
-          <p className="mt-1 text-sm text-stone-500">
-            {connections.length} of {CONNECTION_LIMIT} connections used. Access is read-only.
+          <p className="eyebrow">
+            {connections.length} of {CONNECTION_LIMIT} connections · {totalAccounts}{" "}
+            {totalAccounts === 1 ? "account" : "accounts"}
           </p>
+          <h1 className="mt-1 text-2xl font-medium tracking-tight">Accounts</h1>
         </div>
-        {connections.length < CONNECTION_LIMIT && <PlaidLinkButton label="Connect account" />}
-      </div>
+        {connections.length < CONNECTION_LIMIT && <PlaidLinkButton label="New connection" />}
+      </header>
 
       {connections.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-stone-300 px-6 py-12 text-center text-sm text-stone-500">
-          No accounts connected yet.
-        </p>
+        <div className="card px-6 py-12 text-center">
+          <p className="text-sm font-medium">No accounts connected yet</p>
+          <p className="label mt-1">Connect a card or bank account. Access is read-only.</p>
+        </div>
       )}
 
       {connections.map((item) => {
         const itemAccounts = allAccounts.filter((account) => account.itemId === item.id);
+        const importing = item.status === "ok" && item.historyStatus !== "HISTORICAL_UPDATE_COMPLETE";
         return (
-          <section key={item.id} className="rounded-2xl border border-stone-200 bg-white shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-6 py-4">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h2 className="font-semibold">{item.institutionName}</h2>
-                <StatusBadge status={item.status} errorCode={item.errorCode} />
-                {item.status === "ok" && item.historyStatus !== "HISTORICAL_UPDATE_COMPLETE" && (
-                  <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
-                    Importing history
-                  </span>
-                )}
+          <section key={item.id} className="card">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/70 px-5 py-3.5">
+              <div className="flex items-center gap-3">
+                <span className="grid size-8 place-items-center rounded-lg border border-edge bg-surface text-sm font-medium text-muted">
+                  {item.institutionName.charAt(0)}
+                </span>
+                <div>
+                  <h2 className="text-sm font-medium">{item.institutionName}</h2>
+                  <Status status={item.status} errorCode={item.errorCode} importing={importing} />
+                </div>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-stone-400">{lastSynced(item.lastSyncedAt)}</span>
+              <div className="flex items-center gap-3">
+                <span className="label">{syncedAgo(item.lastSyncedAt)}</span>
                 {item.status === "needs_reconnect" && (
-                  <PlaidLinkButton itemId={item.id} label="Fix" variant="secondary" />
+                  <PlaidLinkButton itemId={item.id} label="Reconnect" variant="secondary" />
                 )}
               </div>
             </div>
-            <ul className="divide-y divide-stone-100">
+            <ul>
               {itemAccounts.map((account) => (
-                <li key={account.id} className="flex items-center justify-between gap-4 px-6 py-3 text-sm">
-                  <span className="font-medium">
-                    {account.name}
-                    {account.mask && <span className="ml-1.5 font-normal text-stone-400">••{account.mask}</span>}
+                <li
+                  key={account.id}
+                  className="flex items-center justify-between gap-4 border-t border-line/50 px-5 py-3 first:border-t-0"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm">
+                      {account.name}
+                      {account.mask && <span className="tabular ml-1.5 text-faint">••{account.mask}</span>}
+                    </p>
+                    <p className="label capitalize">{account.subtype ?? account.type}</p>
+                  </div>
+                  <span className="label tabular whitespace-nowrap">
+                    {(counts.get(account.id) ?? 0).toLocaleString("en-US")} transactions
                   </span>
-                  <span className="text-xs capitalize text-stone-500">{account.subtype ?? account.type}</span>
                 </li>
               ))}
             </ul>

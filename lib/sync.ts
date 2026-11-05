@@ -73,6 +73,7 @@ function toRow(tx: Transaction): typeof transactions.$inferInsert {
     currency: tx.iso_currency_code ?? tx.unofficial_currency_code ?? null,
     name: tx.name,
     merchantName: tx.merchant_name ?? null,
+    logoUrl: tx.logo_url ?? tx.counterparties?.find((party) => party.logo_url)?.logo_url ?? null,
     plaidCategory: tx.personal_finance_category?.primary ?? null,
     plaidCategoryDetailed: tx.personal_finance_category?.detailed ?? null,
     pending: tx.pending,

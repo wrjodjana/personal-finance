@@ -23,11 +23,26 @@ export function monthEnd(month: string): string {
   return `${month}-31`;
 }
 
-export function monthLabel(month: string, style: "long" | "short" = "long"): string {
+export function monthLabel(month: string, style: "long" | "medium" | "short" = "long"): string {
   const [year, monthIndex] = month.split("-").map(Number);
   return new Date(Date.UTC(year, monthIndex - 1, 1)).toLocaleDateString("en-US", {
-    month: style,
-    year: style === "long" ? "numeric" : "2-digit",
+    month: style === "long" ? "long" : "short",
+    year: style === "short" ? "2-digit" : "numeric",
+    timeZone: "UTC",
+  });
+}
+
+export function daysInMonth(month: string): number {
+  const [year, monthIndex] = month.split("-").map(Number);
+  return new Date(Date.UTC(year, monthIndex, 0)).getUTCDate();
+}
+
+export function formatDay(date: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
     timeZone: "UTC",
   });
 }

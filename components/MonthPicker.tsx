@@ -18,10 +18,10 @@ export function MonthPicker({ month, months }: Props) {
   }
 
   const arrow =
-    "grid size-8 place-items-center rounded-lg text-stone-500 transition hover:bg-stone-100 hover:text-stone-900 disabled:pointer-events-none disabled:opacity-30";
+    "grid size-8 place-items-center rounded-md text-muted transition hover:bg-surface hover:text-ink disabled:pointer-events-none disabled:opacity-30";
 
   return (
-    <div className="inline-flex items-center gap-1 rounded-xl border border-stone-200 bg-white p-1 shadow-sm">
+    <div className="control inline-flex h-10 items-center gap-0.5 px-1">
       <button
         type="button"
         className={arrow}
@@ -29,12 +29,15 @@ export function MonthPicker({ month, months }: Props) {
         disabled={index === -1 || index >= months.length - 1}
         onClick={() => go(months[index + 1]?.value)}
       >
-        ‹
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden>
+          <path d="m12 5-5 5 5 5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
       <select
         value={month}
         onChange={(event) => go(event.target.value)}
-        className="cursor-pointer appearance-none rounded-lg bg-transparent px-2 py-1 text-center text-sm font-medium focus:outline-none"
+        aria-label="Month"
+        className="tabular h-8 min-w-24 cursor-pointer appearance-none rounded-md bg-transparent px-1 text-center text-sm font-medium hover:bg-surface focus:outline-none"
       >
         {months.map((option) => (
           <option key={option.value} value={option.value}>
@@ -49,7 +52,9 @@ export function MonthPicker({ month, months }: Props) {
         disabled={index <= 0}
         onClick={() => go(months[index - 1]?.value)}
       >
-        ›
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden>
+          <path d="m8 5 5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
     </div>
   );

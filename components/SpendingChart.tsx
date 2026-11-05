@@ -3,10 +3,11 @@
 import { useRouter } from "next/navigation";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-export type ChartSeries = { key: string; label: string; color: string };
-export type ChartRow = { month: string; label: string; selected: boolean } & Record<string, number | string | boolean>;
+export type ChartRow = { month: string; label: string; longLabel: string; total: number; selected: boolean };
 
-type Props = { rows: ChartRow[]; series: ChartSeries[] };
+const INK = "oklch(0.35 0.02 65)";
+const BLOCK = "oklch(0.9 0.004 75)";
+const BLOCK_HOVER = "oklch(0.82 0.006 75)";
 
 const dollars = (value: number) =>
   value.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -26,32 +27,34 @@ function niceStep(rough: number): number {
   return factor * power;
 }
 
-function axis(rows: ChartRow[], series: ChartSeries[]) {
-  let top = 0;
-  let bottom = 0;
-  for (const row of rows) {
-    let positive = 0;
-    let negative = 0;
-    for (const item of series) {
-      const value = Number(row[item.key] ?? 0);
-      if (value > 0) positive += value;
-      else negative += value;
-    }
-    top = Math.max(top, positive);
-    bottom = Math.min(bottom, negative);
-  }
-  const step = niceStep(top / 4);
+function axis(rows: ChartRow[]) {
+  const top = Math.max(0, ...rows.map((row) => row.total));
+  const bottom = Math.min(0, ...rows.map((row) => row.total));
+  const step = niceStep(top / 3);
   const ticks: number[] = [];
   for (let tick = 0; tick < top + step; tick += step) ticks.push(tick);
   return { ticks, domain: [bottom, ticks[ticks.length - 1]] as [number, number] };
 }
 
-export function SpendingChart({ rows, series }: Props) {
+type TooltipProps = { active?: boolean; payload?: { payload: ChartRow }[] };
+
+function ChartTooltip({ active, payload }: TooltipProps) {
+  const row = payload?.[0]?.payload;
+  if (!active || !row) return null;
+  return (
+    <div className="card px-3 py-2">
+      <p className="label">{row.longLabel}</p>
+      <p className="tabular text-sm font-medium">{dollars(row.total)}</p>
+    </div>
+  );
+}
+
+export function SpendingChart({ rows }: { rows: ChartRow[] }) {
   const router = useRouter();
-  const { ticks, domain } = axis(rows, series);
+  const { ticks, domain } = axis(rows);
 
   return (
-    <div className="h-64 w-full">
+    <div className="h-56 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={rows}
@@ -62,45 +65,30 @@ export function SpendingChart({ rows, series }: Props) {
             if (row) router.push(`/?month=${row.month}`);
           }}
         >
-          <CartesianGrid vertical={false} stroke="#e7e5e4" />
+          <CartesianGrid vertical={false} stroke="oklch(0.94 0.003 75)" />
           <XAxis
             dataKey="label"
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 12, fill: "#78716c" }}
+            tick={{ fontSize: 11, fill: "oklch(0.455 0.005 70)" }}
             interval={0}
           />
           <YAxis
             tickLine={false}
             axisLine={false}
-            width={48}
+            width={44}
+            tick={{ fontSize: 11, fill: "oklch(0.6 0.005 70)" }}
+            tickFormatter={compact}
             ticks={ticks}
             domain={domain}
             allowDataOverflow
-            tick={{ fontSize: 12, fill: "#a8a29e" }}
-            tickFormatter={compact}
           />
-          <Tooltip
-            cursor={{ fill: "#f5f5f4" }}
-            formatter={(value, name) => [dollars(Number(value)), name]}
-            contentStyle={{ borderRadius: 12, border: "1px solid #e7e5e4", fontSize: 12 }}
-            itemSorter={(item) => -Number(item.value)}
-          />
-          {series.map((item, index) => (
-            <Bar
-              key={item.key}
-              dataKey={item.key}
-              name={item.label}
-              stackId="spend"
-              fill={item.color}
-              radius={index === series.length - 1 ? [4, 4, 0, 0] : 0}
-              className="cursor-pointer"
-            >
-              {rows.map((row) => (
-                <Cell key={row.month} fillOpacity={row.selected ? 1 : 0.35} />
-              ))}
-            </Bar>
-          ))}
+          <Tooltip cursor={{ fill: "oklch(0.97 0.003 75)" }} content={<ChartTooltip />} />
+          <Bar dataKey="total" radius={[5, 5, 2, 2]} maxBarSize={36} className="cursor-pointer" activeBar={{ fill: BLOCK_HOVER }}>
+            {rows.map((row) => (
+              <Cell key={row.month} fill={row.selected ? INK : BLOCK} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>

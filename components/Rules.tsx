@@ -42,26 +42,26 @@ export function Rules({ rules, options }: { rules: Rule[]; options: Option[] }) 
   }
 
   const field =
-    "h-10 rounded-xl border border-stone-200 bg-white px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-stone-300";
+    "control h-10 px-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-line";
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white shadow-sm">
-      <div className="border-b border-stone-100 px-6 py-4">
-        <h2 className="font-semibold">Rules</h2>
-        <p className="mt-0.5 text-sm text-stone-500">
+    <section className="card">
+      <div className="border-b border-line/70 px-5 py-4">
+        <h2 className="text-sm font-medium">Rules</h2>
+        <p className="label mt-1">
           A rule sets the category of every transaction whose merchant contains the text. Newer rules win. A category
           you pick by hand always wins.
         </p>
       </div>
-      <form onSubmit={add} className="flex flex-wrap items-center gap-2 px-6 py-4">
-        <span className="text-sm text-stone-500">Merchant contains</span>
+      <form onSubmit={add} className="flex flex-wrap items-center gap-2 px-5 py-4">
+        <span className="text-sm text-muted">Merchant contains</span>
         <input
           className={`${field} w-48`}
           value={pattern}
           onChange={(event) => setPattern(event.target.value)}
           placeholder="e.g. Uber Eats"
         />
-        <span className="text-sm text-stone-500">→</span>
+        <span className="text-sm text-muted">→</span>
         <select className={`${field} cursor-pointer`} value={category} onChange={(event) => setCategory(event.target.value)}>
           {options.map((option) => (
             <option key={option.value} value={option.value}>
@@ -72,25 +72,25 @@ export function Rules({ rules, options }: { rules: Rule[]; options: Option[] }) 
         <button
           type="submit"
           disabled={busy || pattern.trim().length < 2}
-          className="h-10 rounded-xl bg-stone-900 px-4 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-40"
+          className="h-10 rounded-lg bg-[oklch(0.35_0.02_65)] px-4 text-sm font-medium text-white shadow-sm transition hover:bg-[oklch(0.29_0.02_65)] disabled:opacity-40"
         >
           Add rule
         </button>
-        {error && <p className="w-full text-xs text-red-600">{error}</p>}
+        {error && <p className="w-full text-xs text-negative">{error}</p>}
       </form>
       {rules.length > 0 && (
-        <ul className="divide-y divide-stone-100 border-t border-stone-100">
+        <ul className="divide-y divide-line/60 border-t border-line/70">
           {rules.map((rule) => (
-            <li key={rule.id} className="flex items-center justify-between gap-4 px-6 py-3 text-sm">
+            <li key={rule.id} className="flex items-center justify-between gap-4 px-5 py-3 text-sm">
               <span>
                 <span className="font-medium">“{rule.pattern}”</span>
-                <span className="text-stone-400"> → </span>
+                <span className="text-faint"> → </span>
                 {rule.categoryLabel}
               </span>
               <button
                 type="button"
                 onClick={() => remove(rule.id)}
-                className="text-xs font-medium text-stone-400 hover:text-red-600"
+                className="text-xs text-faint hover:text-negative"
               >
                 Delete
               </button>

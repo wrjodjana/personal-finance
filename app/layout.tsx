@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { Nav } from "@/components/Nav";
+import { Lexend } from "next/font/google";
 import { RefreshButton } from "@/components/RefreshButton";
+import { Sidebar } from "@/components/Sidebar";
 import { plaidConfigured } from "@/lib/plaid";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const lexend = Lexend({ subsets: ["latin"], variable: "--font-lexend" });
 
 export const metadata: Metadata = {
   title: "Personal Finance",
@@ -15,19 +15,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const configured = plaidConfigured();
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={lexend.variable}>
       <body className="min-h-screen font-sans">
-        <header className="sticky top-0 z-10 border-b border-stone-200/80 bg-[#f7f7f5]/90 backdrop-blur">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:px-6">
-            <Nav />
-            {configured && (
-              <div className="ml-auto">
-                <RefreshButton />
-              </div>
-            )}
-          </div>
-        </header>
-        <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">{children}</main>
+        <div className="flex min-h-screen flex-col md:flex-row">
+          <Sidebar footer={configured ? <RefreshButton /> : null} />
+          <main className="min-w-0 flex-1 px-4 py-6 sm:px-8 md:py-10">
+            <div className="mx-auto max-w-4xl">{children}</div>
+          </main>
+        </div>
       </body>
     </html>
   );

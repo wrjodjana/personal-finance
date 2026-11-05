@@ -1,18 +1,40 @@
 import Link from "next/link";
+import { MerchantAvatar } from "@/components/MerchantAvatar";
 import { MonthPicker } from "@/components/MonthPicker";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
 import { SetupNotice } from "@/components/SetupNotice";
-import { SpendingChart, type ChartRow, type ChartSeries } from "@/components/SpendingChart";
+import { SpendingChart, type ChartRow } from "@/components/SpendingChart";
 import { categoryMeta } from "@/lib/categories";
 import { getDb } from "@/lib/db";
-import { availableMonths, loadLedger, monthRange, summarize } from "@/lib/ledger";
-import { addMonths, formatCents, monthLabel, parseMonth } from "@/lib/months";
+import { availableMonths, loadLedger, monthRange, summarize, type LedgerEntry } from "@/lib/ledger";
+import { addMonths, currentMonth, daysInMonth, formatCents, formatDate, monthLabel, parseMonth } from "@/lib/months";
 import { plaidConfigured } from "@/lib/plaid";
 import { items } from "@/lib/schema";
 
 export const dynamic = "force-dynamic";
 
-const CHART_CATEGORY_LIMIT = 6;
+function topMerchants(entries: LedgerEntry[]) {
+  const byMerchant = new Map<string, { name: string; logoUrl: string | null; cents: number; count: number }>();
+  for (const entry of entries) {
+    if (!entry.isSpending || entry.amountCents <= 0) continue;
+    const current = byMerchant.get(entry.merchant) ?? { name: entry.merchant, logoUrl: entry.logoUrl, cents: 0, count: 0 };
+    current.cents += entry.amountCents;
+    current.count += 1;
+    current.logoUrl ??= entry.logoUrl;
+    byMerchant.set(entry.merchant, current);
+  }
+  return [...byMerchant.values()].sort((a, b) => b.count - a.count || b.cents - a.cents).slice(0, 5);
+}
+
+function Stat({ label, value, note }: { label: string; value: string; note?: React.ReactNode }) {
+  return (
+    <div className="card px-4 py-3.5">
+      <p className="label">{label}</p>
+      <p className="tabular mt-1 text-2xl font-medium tracking-tight">{value}</p>
+      {note && <div className="mt-1 text-xs text-muted">{note}</div>}
+    </div>
+  );
+}
 
 export default async function SpendingPage({
   searchParams,
@@ -24,9 +46,9 @@ export default async function SpendingPage({
   const connections = getDb().select().from(items).all();
   if (connections.length === 0) {
     return (
-      <div className="mx-auto max-w-xl rounded-2xl border border-stone-200 bg-white p-8 text-center shadow-sm">
-        <h1 className="text-lg font-semibold">Connect your first card</h1>
-        <p className="mt-2 text-sm text-stone-600">
+      <div className="card mx-auto mt-16 max-w-md px-8 py-10 text-center">
+        <h1 className="text-lg font-medium">Connect your first card</h1>
+        <p className="mt-2 text-sm text-muted">
           Connect a credit card or bank account to see where your money goes. Access is read-only.
         </p>
         <div className="mt-6 flex justify-center">
@@ -37,94 +59,114 @@ export default async function SpendingPage({
   }
 
   const month = parseMonth((await searchParams).month);
-  const months = availableMonths();
+  const previousMonth = addMonths(month, -1);
   const chartMonths = monthRange(month, 12);
   const ledger = loadLedger(chartMonths[0], month);
   const summary = summarize(ledger, month);
-  const previous = summarize(ledger, addMonths(month, -1));
+  const previous = summarize(ledger, previousMonth);
   const delta = summary.totalCents - previous.totalCents;
+  const deltaShare = previous.totalCents > 0 ? (Math.abs(delta) / previous.totalCents) * 100 : null;
   const broken = connections.filter((item) => item.status !== "ok");
   const importing = connections.filter((item) => item.historyStatus !== "HISTORICAL_UPDATE_COMPLETE");
 
-  const monthly = chartMonths.map((chartMonth) => summarize(ledger, chartMonth));
-  const yearTotals = new Map<string, number>();
-  for (const entry of monthly) {
-    for (const item of entry.categories) {
-      yearTotals.set(item.category, (yearTotals.get(item.category) ?? 0) + item.cents);
-    }
-  }
-  const ranked = [...yearTotals.entries()].sort((a, b) => b[1] - a[1]).map(([key]) => key);
-  const topKeys = ranked.slice(0, CHART_CATEGORY_LIMIT);
-  const hasOther = ranked.length > CHART_CATEGORY_LIMIT;
-  const series: ChartSeries[] = [
-    ...(hasOther ? [{ key: "OTHER", label: "Everything else", color: "#d6d3d1" }] : []),
-    ...[...topKeys].reverse().map((key) => ({ key, label: categoryMeta(key).label, color: categoryMeta(key).color })),
-  ];
-  const rows: ChartRow[] = monthly.map((entry) => {
-    const row: ChartRow = { month: entry.month, label: monthLabel(entry.month, "short"), selected: entry.month === month };
-    for (const key of topKeys) row[key] = 0;
-    if (hasOther) row.OTHER = 0;
-    for (const item of entry.categories) {
-      const key = topKeys.includes(item.category) ? item.category : "OTHER";
-      row[key] = Number(row[key]) + item.cents / 100;
-    }
-    return row;
-  });
+  const monthEntries = ledger.filter((entry) => entry.month === month);
+  const spendingEntries = monthEntries.filter((entry) => entry.isSpending);
+  const isCurrent = month === currentMonth();
+  const daysCounted = isCurrent ? new Date().getDate() : daysInMonth(month);
+  const dailyCents = Math.round(summary.totalCents / daysCounted);
+  const merchants = topMerchants(monthEntries);
+  const largest = [...spendingEntries].sort((a, b) => b.amountCents - a.amountCents).slice(0, 5);
 
-  const largest = Math.max(...summary.categories.map((item) => item.cents), 1);
+  const rows: ChartRow[] = chartMonths.map((chartMonth) => ({
+    month: chartMonth,
+    label: monthLabel(chartMonth, "short").split(" ")[0],
+    longLabel: monthLabel(chartMonth),
+    total: summarize(ledger, chartMonth).totalCents / 100,
+    selected: chartMonth === month,
+  }));
+
+  const scale = Math.max(...summary.categories.map((item) => item.cents), 1);
   const purchasesCents = summary.categories.reduce((sum, item) => sum + Math.max(item.cents, 0), 0);
-  const monthOptions = months.map((value) => ({ value, label: monthLabel(value) }));
+  const monthOptions = availableMonths().map((value) => ({ value, label: monthLabel(value, "medium") }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="eyebrow">{monthLabel(month)}</p>
+          <h1 className="mt-1 text-2xl font-medium tracking-tight">Spending</h1>
+        </div>
+        <MonthPicker month={month} months={monthOptions} />
+      </header>
+
       {broken.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <span>
-            {broken.map((item) => item.institutionName).join(", ")} stopped syncing. Some data may be out of date.
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-negative/20 bg-negative/5 px-4 py-3 text-sm">
+          <span className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-negative" />
+            {broken.map((item) => item.institutionName).join(", ")} needs attention. Some data may be out of date.
           </span>
           <Link href="/accounts" className="font-medium underline underline-offset-2">
-            Fix on Accounts
+            Reconnect
           </Link>
         </div>
       )}
       {importing.length > 0 && broken.length === 0 && (
-        <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-          Plaid is still importing your history. Click Refresh in a few minutes to load older months.
+        <div className="rounded-xl border border-edge bg-surface px-4 py-3 text-sm text-muted">
+          Plaid is still importing your history. Refresh in a few minutes to load older months.
         </div>
       )}
 
-      <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-stone-500">Spent in {monthLabel(month)}</p>
-            <p className="tabular mt-1 text-4xl font-semibold tracking-tight">{formatCents(summary.totalCents)}</p>
-            {previous.totalCents !== 0 && (
-              <p className="mt-1.5 text-sm text-stone-500">
-                <span className={delta > 0 ? "text-red-600" : "text-emerald-600"}>
-                  {delta > 0 ? "↑" : "↓"} {formatCents(Math.abs(delta))}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Stat
+          label="Spent"
+          value={formatCents(summary.totalCents)}
+          note={
+            previous.totalCents !== 0 ? (
+              <span>
+                <span className={delta > 0 ? "text-negative" : "text-positive"}>
+                  {delta > 0 ? "▲" : "▼"} {formatCents(Math.abs(delta))}
+                  {deltaShare !== null && ` (${deltaShare.toFixed(1)}%)`}
                 </span>{" "}
-                vs {monthLabel(addMonths(month, -1), "long").split(" ")[0]}
-              </p>
-            )}
-          </div>
-          <MonthPicker month={month} months={monthOptions} />
+                vs {monthLabel(previousMonth, "medium").split(" ")[0]}
+              </span>
+            ) : (
+              "No spending last month"
+            )
+          }
+        />
+        <Stat
+          label="Daily average"
+          value={formatCents(dailyCents)}
+          note={`Over ${daysCounted} ${daysCounted === 1 ? "day" : "days"}${isCurrent ? " so far" : ""}`}
+        />
+        <Stat
+          label="Transactions"
+          value={String(spendingEntries.length)}
+          note={`In ${summary.categories.length} ${summary.categories.length === 1 ? "category" : "categories"}`}
+        />
+      </div>
+
+      <section className="card px-4 pt-4 pb-3">
+        <div className="flex items-baseline justify-between px-1">
+          <h2 className="text-sm font-medium">Monthly spending</h2>
+          <p className="label">Past 12 months</p>
         </div>
-        <div className="mt-6">
-          <SpendingChart rows={rows} series={series} />
+        <div className="mt-3">
+          <SpendingChart rows={rows} />
         </div>
       </section>
 
-      <section className="rounded-2xl border border-stone-200 bg-white shadow-sm">
-        <div className="flex items-baseline justify-between border-b border-stone-100 px-6 py-4">
-          <h2 className="font-semibold">By category</h2>
-          <Link href={`/transactions?month=${month}`} className="text-sm text-stone-500 hover:text-stone-900">
-            All transactions →
+      <section className="card">
+        <div className="flex items-baseline justify-between px-5 pt-4 pb-2">
+          <h2 className="text-sm font-medium">Categories</h2>
+          <Link href={`/transactions?month=${month}`} className="label hover:text-ink">
+            View all transactions →
           </Link>
         </div>
         {summary.categories.length === 0 ? (
-          <p className="px-6 py-10 text-center text-sm text-stone-500">No spending in {monthLabel(month)}.</p>
+          <p className="px-5 pt-6 pb-8 text-center text-sm text-muted">No spending in {monthLabel(month)}.</p>
         ) : (
-          <ul className="divide-y divide-stone-100">
+          <ul className="pb-2">
             {summary.categories.map((item) => {
               const meta = categoryMeta(item.category);
               const refund = item.cents < 0;
@@ -133,32 +175,30 @@ export default async function SpendingPage({
                 <li key={item.category}>
                   <Link
                     href={`/transactions?month=${month}&category=${item.category}`}
-                    className="grid grid-cols-[1fr_6.5rem_3.5rem] items-center gap-x-4 gap-y-2 px-6 py-3.5 transition hover:bg-stone-50 sm:grid-cols-[12rem_1fr_6.5rem_3.5rem]"
+                    className="grid grid-cols-[1fr_6.5rem_3.5rem] items-center gap-x-4 gap-y-1.5 px-5 py-2.5 transition hover:bg-surface sm:grid-cols-[11rem_1fr_6.5rem_3.5rem]"
                   >
                     <div className="flex min-w-0 items-center gap-2.5">
                       <span className="size-2.5 shrink-0 rounded-full" style={{ background: meta.color }} />
-                      <span className="truncate text-sm font-medium">{meta.label}</span>
-                      <span className="text-xs text-stone-400">{item.count}</span>
+                      <span className="truncate text-sm">{meta.label}</span>
+                      <span className="tabular text-xs text-faint">{item.count}</span>
                     </div>
                     {refund ? (
-                      <span className="order-last col-span-3 text-xs font-medium text-emerald-600 sm:order-none sm:col-span-1">
-                        Net refund
-                      </span>
+                      <span className="order-last col-span-3 text-xs text-positive sm:order-none sm:col-span-1">Net refund</span>
                     ) : (
-                      <div className="order-last col-span-3 h-1.5 overflow-hidden rounded-full bg-stone-100 sm:order-none sm:col-span-1">
+                      <div className="order-last col-span-3 h-1.5 overflow-hidden rounded-full bg-line/70 sm:order-none sm:col-span-1">
                         <div
                           className="h-full rounded-full"
-                          style={{ width: `${(item.cents / largest) * 100}%`, background: meta.color }}
+                          style={{ width: `${(item.cents / scale) * 100}%`, background: meta.color }}
                         />
                       </div>
                     )}
                     <span
-                      className={`tabular whitespace-nowrap text-right text-sm font-medium ${refund ? "text-emerald-600" : ""}`}
+                      className={`tabular whitespace-nowrap text-right text-sm font-medium ${refund ? "text-positive" : ""}`}
                     >
                       {refund ? "+" : ""}
                       {formatCents(Math.abs(item.cents))}
                     </span>
-                    <span className="tabular whitespace-nowrap text-right text-sm text-stone-400">
+                    <span className="tabular whitespace-nowrap text-right text-xs text-muted">
                       {refund ? "" : `${share.toFixed(1)}%`}
                     </span>
                   </Link>
@@ -168,6 +208,52 @@ export default async function SpendingPage({
           </ul>
         )}
       </section>
+
+      <div className="grid gap-5 md:grid-cols-2">
+        <section className="card">
+          <h2 className="px-5 pt-4 pb-2 text-sm font-medium">Frequent merchants</h2>
+          {merchants.length === 0 ? (
+            <p className="px-5 pb-6 text-sm text-muted">No purchases yet.</p>
+          ) : (
+            <ul className="pb-2">
+              {merchants.map((merchant) => (
+                <li key={merchant.name} className="flex items-center gap-3 px-5 py-2">
+                  <MerchantAvatar name={merchant.name} logoUrl={merchant.logoUrl} size={28} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm">{merchant.name}</p>
+                    <p className="label">
+                      {merchant.count} {merchant.count === 1 ? "purchase" : "purchases"}
+                    </p>
+                  </div>
+                  <span className="tabular text-sm font-medium">{formatCents(merchant.cents)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="card">
+          <h2 className="px-5 pt-4 pb-2 text-sm font-medium">Largest transactions</h2>
+          {largest.length === 0 ? (
+            <p className="px-5 pb-6 text-sm text-muted">No purchases yet.</p>
+          ) : (
+            <ul className="pb-2">
+              {largest.map((entry) => (
+                <li key={entry.id} className="flex items-center gap-3 px-5 py-2">
+                  <MerchantAvatar name={entry.merchant} logoUrl={entry.logoUrl} size={28} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm">{entry.merchant}</p>
+                    <p className="label">
+                      {formatDate(entry.date)} · {categoryMeta(entry.category).label}
+                    </p>
+                  </div>
+                  <span className="tabular text-sm font-medium">{formatCents(entry.amountCents)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

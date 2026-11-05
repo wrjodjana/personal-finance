@@ -1,13 +1,57 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-lexend), ui-sans-serif, system-ui, sans-serif;
+
+  --color-canvas: oklch(0.995 0.002 75);
+  --color-surface: oklch(0.975 0.003 75);
+  --color-card: oklch(0.989 0.002 75);
+  --color-ink: oklch(0.145 0.003 70);
+  --color-muted: oklch(0.455 0.005 70);
+  --color-faint: oklch(0.6 0.005 70);
+  --color-line: oklch(0.922 0.003 75);
+  --color-edge: rgb(92 77 60 / 0.1);
+  --color-positive: oklch(0.55 0.13 155);
+  --color-negative: oklch(0.55 0.19 25);
 }
 
 body {
-  background: #f7f7f5;
-  color: #1c1917;
+  background: var(--color-canvas);
+  color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
+}
+
+@utility card {
+  border: 1px solid var(--color-edge);
+  border-radius: 0.875rem;
+  background: var(--color-canvas);
+  box-shadow:
+    inset 0 1px 0 0 #ffffff,
+    inset 0 -1px 0 0 rgb(0 0 0 / 0.03),
+    0 1px 2px 0 rgb(0 0 0 / 0.04);
+}
+
+@utility control {
+  border: 1px solid var(--color-edge);
+  border-radius: 0.625rem;
+  background: var(--color-canvas);
+  box-shadow:
+    inset 0 1px 0 0 #ffffff,
+    0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+@utility label {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--color-muted);
+}
+
+@utility eyebrow {
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
 }
 
 .tabular {

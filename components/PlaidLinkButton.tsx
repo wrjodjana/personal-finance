@@ -77,8 +77,8 @@ export function PlaidLinkButton({ itemId, label, variant = "primary" }: Props) {
 
   const styles =
     variant === "primary"
-      ? "bg-stone-900 text-white hover:bg-stone-800"
-      : "border border-stone-200 bg-white text-stone-700 shadow-sm hover:bg-stone-50";
+      ? "bg-[oklch(0.35_0.02_65)] text-white shadow-sm hover:bg-[oklch(0.29_0.02_65)]"
+      : "control text-ink hover:bg-surface";
 
   return (
     <div className="flex flex-col items-start gap-1.5">
@@ -86,11 +86,11 @@ export function PlaidLinkButton({ itemId, label, variant = "primary" }: Props) {
         type="button"
         onClick={start}
         disabled={busy}
-        className={`rounded-lg px-3.5 py-2 text-sm font-medium transition disabled:opacity-60 ${styles}`}
+        className={`h-9 rounded-lg px-3.5 text-sm font-medium transition disabled:opacity-60 ${styles}`}
       >
-        {busy ? "Working…" : label}
+        {busy ? "Opening…" : label}
       </button>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-negative">{error}</p>}
     </div>
   );
 }
