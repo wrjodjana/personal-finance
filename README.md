@@ -22,16 +22,15 @@ Only spending counts. Income, transfers between your accounts and credit card pa
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/wrjodjana/personal-finance)
 
-1. Click the button. Cloudflare copies this repo into your GitHub account, makes a D1 database and deploys the app. When it asks for `PLAID_CLIENT_ID` and `PLAID_SECRET`, put in your Production keys from [dashboard.plaid.com/developers/keys](https://dashboard.plaid.com/developers/keys).
-2. Open the app. It shows **Turn on sign-in first** and no data. Follow its steps:
-   - In the Cloudflare dashboard, open **Workers & Pages**, then the `personal-finance` Worker.
-   - Open **Settings** > **Domains & Routes** and click **Enable Cloudflare Access** for workers.dev. Allow only your own email.
-   - Copy the two values it shows. Add them in **Settings** > **Variables and Secrets** as `TEAM_DOMAIN` and `POLICY_AUD`.
-3. Open the app again, sign in with your email and connect your first account.
+Follow **[docs/deploy.md](docs/deploy.md)**. It has every step, with the Deploy button or from the command line. In short:
+
+1. Deploy the app and add your Plaid keys as secrets.
+2. Turn on Cloudflare Access for the Worker with the **Cloudflare account** policy.
+3. Add the Access **JWKS URL** as `TEAM_DOMAIN` and the **AUD tag** as `POLICY_AUD`.
 
 The app syncs every day at 12:00 UTC. **Sync now** syncs at any time.
 
-To get updates, sync your copy of the repo with this one on GitHub. Each push deploys again and applies new database migrations.
+If you use Claude Code, ask it to "deploy this to Cloudflare". The `deploy` skill in `.claude/skills/` takes you through the same steps.
 
 ### How your data is kept safe
 
@@ -60,14 +59,3 @@ npm run dev
 ```
 
 On your computer, the app uses a local D1 database in `.wrangler/` and has no sign-in.
-
-### Move data from an older version
-
-Older versions kept data in `data/finance.db`. To copy it into a new, empty database:
-
-```sh
-npm run db:import             # into the local database
-npm run db:import -- --remote # into your Cloudflare database
-```
-
-For `--remote`, sign in first with `npx wrangler login`, and put your database ID in `wrangler.jsonc`.
