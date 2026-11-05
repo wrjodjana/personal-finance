@@ -141,6 +141,13 @@ export async function loadLedger(fromMonth: string, toMonth: string): Promise<Le
   return entries.filter((entry) => entry.date >= from && entry.date <= to);
 }
 
+export type RefundPair = { purchase: LedgerEntry; refund: LedgerEntry };
+
+export async function loadRefunds(): Promise<RefundPair[]> {
+  const entries = (await loadEntries()).filter((entry) => !entry.deletedAt);
+  return matchRefunds(entries).sort((a, b) => b.refund.date.localeCompare(a.refund.date));
+}
+
 export async function loadTrash(): Promise<LedgerEntry[]> {
   return (await loadEntries())
     .filter((entry) => entry.deletedAt)
@@ -159,7 +166,8 @@ function canMatchRefund(entry: LedgerEntry): boolean {
   return entry.isSpending && entry.exclusionChoice === null;
 }
 
-function matchRefunds(entries: LedgerEntry[]) {
+function matchRefunds(entries: LedgerEntry[]): RefundPair[] {
+  const pairs: RefundPair[] = [];
   const purchases = new Map<string, LedgerEntry[]>();
   for (const entry of entries) {
     if (!canMatchRefund(entry) || entry.amountCents <= 0) continue;
@@ -189,7 +197,9 @@ function matchRefunds(entries: LedgerEntry[]) {
       entry.isSpending = false;
       entry.removed = true;
     }
+    pairs.push({ purchase, refund });
   }
+  return pairs;
 }
 
 export type CategoryTotal = { category: string; cents: number; count: number };

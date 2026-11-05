@@ -197,6 +197,20 @@ export default async function TransactionsPage({
         <div className="flex items-center gap-2">
           <MonthPicker month={month} months={monthOptions} />
           <Link
+            href="/transactions/refunds"
+            aria-label="Refunds"
+            title="Refunds"
+            className="control grid size-10 shrink-0 place-items-center rounded-full text-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-line"
+          >
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="size-4" aria-hidden>
+              <path
+                d="M5 3.5h10v13l-1.67-1.25-1.66 1.25L10 15.25 8.33 16.5l-1.66-1.25L5 16.5v-13ZM7.75 7.5h4.5m-4.5 3h4.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </Link>
+          <Link
             href="/transactions/trash"
             aria-label={trashCount > 0 ? `Trash, ${trashCount} deleted` : "Trash"}
             title="Trash"
