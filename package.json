@@ -1,0 +1,33 @@
+{
+  "name": "personal-finance",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local, single-user spending dashboard built on Plaid.",
+  "scripts": {
+    "dev": "node scripts/preflight.mjs && next dev -H 127.0.0.1",
+    "build": "next build",
+    "start": "node scripts/preflight.mjs && next start -H 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "drizzle-orm": "^0.45.4",
+    "next": "^16.4.5",
+    "plaid": "^50.0.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-plaid-link": "^5.0.0",
+    "recharts": "^3.10.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.4",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "drizzle-kit": "^0.31.11",
+    "tailwindcss": "^4.3.4",
+    "typescript": "^5.9.3"
+  }
+}
