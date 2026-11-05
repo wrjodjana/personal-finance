@@ -2,18 +2,18 @@ export type CategoryMeta = { label: string; color: string; spending: boolean };
 
 export const CATEGORIES: Record<string, CategoryMeta> = {
   UNCATEGORIZED: { label: "Uncategorized", color: "#a8a29e", spending: true },
-  BILLS: { label: "Bills", color: "#f97316", spending: true },
-  ENTERTAINMENT: { label: "Entertainment", color: "#8b5cf6", spending: true },
-  FOOD: { label: "Food", color: "#22c55e", spending: true },
-  HEALTHCARE: { label: "Healthcare", color: "#ec4899", spending: true },
-  HOUSING: { label: "Housing", color: "#ef4444", spending: true },
+  BILLS: { label: "Bills", color: "#eb6834", spending: true },
+  ENTERTAINMENT: { label: "Entertainment", color: "#e87ba4", spending: true },
+  FOOD: { label: "Food", color: "#008300", spending: true },
+  HEALTHCARE: { label: "Healthcare", color: "#1baf7a", spending: true },
+  HOUSING: { label: "Housing", color: "#e34948", spending: true },
   MISCELLANEOUS: { label: "Miscellaneous", color: "#78716c", spending: true },
   OTHER_INCOME: { label: "Other Income", color: "#eab308", spending: false },
   SALARY: { label: "Salary", color: "#16a34a", spending: false },
   SAVINGS: { label: "Savings", color: "#84cc16", spending: false },
-  SHOPPING: { label: "Shopping", color: "#6366f1", spending: true },
-  SUBSCRIPTIONS: { label: "Subscriptions", color: "#7c3aed", spending: true },
-  TRAVEL: { label: "Travel", color: "#3b82f6", spending: true },
+  SHOPPING: { label: "Shopping", color: "#6250d6", spending: true },
+  SUBSCRIPTIONS: { label: "Subscriptions", color: "#eda100", spending: true },
+  TRAVEL: { label: "Travel", color: "#2a78d6", spending: true },
   TRANSFER: { label: "Other", color: "#94a3b8", spending: false },
 };
 
