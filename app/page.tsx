@@ -133,7 +133,7 @@ export default async function SpendingPage({
                 <li key={item.category}>
                   <Link
                     href={`/transactions?month=${month}&category=${item.category}`}
-                    className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 px-6 py-3.5 transition hover:bg-stone-50 sm:grid-cols-[12rem_1fr_7rem]"
+                    className="grid grid-cols-[1fr_6.5rem_3.5rem] items-center gap-x-4 gap-y-2 px-6 py-3.5 transition hover:bg-stone-50 sm:grid-cols-[12rem_1fr_6.5rem_3.5rem]"
                   >
                     <div className="flex min-w-0 items-center gap-2.5">
                       <span className="size-2.5 shrink-0 rounded-full" style={{ background: meta.color }} />
@@ -141,24 +141,26 @@ export default async function SpendingPage({
                       <span className="text-xs text-stone-400">{item.count}</span>
                     </div>
                     {refund ? (
-                      <span className="order-last col-span-2 text-xs font-medium text-emerald-600 sm:order-none sm:col-span-1">
+                      <span className="order-last col-span-3 text-xs font-medium text-emerald-600 sm:order-none sm:col-span-1">
                         Net refund
                       </span>
                     ) : (
-                      <div className="order-last col-span-2 h-1.5 overflow-hidden rounded-full bg-stone-100 sm:order-none sm:col-span-1">
+                      <div className="order-last col-span-3 h-1.5 overflow-hidden rounded-full bg-stone-100 sm:order-none sm:col-span-1">
                         <div
                           className="h-full rounded-full"
                           style={{ width: `${(item.cents / largest) * 100}%`, background: meta.color }}
                         />
                       </div>
                     )}
-                    <div className="tabular text-right text-sm">
-                      <span className={`font-medium ${refund ? "text-emerald-600" : ""}`}>
-                        {refund ? "+" : ""}
-                        {formatCents(Math.abs(item.cents))}
-                      </span>
-                      <span className="ml-2 inline-block w-12 text-stone-400">{refund ? "" : `${share.toFixed(1)}%`}</span>
-                    </div>
+                    <span
+                      className={`tabular whitespace-nowrap text-right text-sm font-medium ${refund ? "text-emerald-600" : ""}`}
+                    >
+                      {refund ? "+" : ""}
+                      {formatCents(Math.abs(item.cents))}
+                    </span>
+                    <span className="tabular whitespace-nowrap text-right text-sm text-stone-400">
+                      {refund ? "" : `${share.toFixed(1)}%`}
+                    </span>
                   </Link>
                 </li>
               );
