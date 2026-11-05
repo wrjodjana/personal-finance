@@ -109,6 +109,22 @@ npm run db:import -- --remote
 
 It copies from `data/finance.db` (older versions). It stops if the database already has connections.
 
+### 8. Deploy on each push (optional)
+
+Do this to stop running `npm run deploy` by hand. Cloudflare then deploys each push to `main` and applies new migrations.
+
+1. Open **Workers & Pages** > **personal-finance** > **Settings** > **Builds** and click **Connect**.
+2. Choose GitHub, sign in, and choose your `personal-finance` repo.
+3. Set:
+   - **Branch**: `main`
+   - **Build command**: leave it empty
+   - **Deploy command**: `npm run deploy`
+   - **Enable Preview builds**: off. The preview command does not build the app, and a preview uses your real database.
+   - **API token** (under **Advanced settings**): **Create new token**. The new token has D1 access, which the migration step needs.
+4. Click **Connect**.
+
+Push a commit to check. The build log is in **Settings** > **Builds** > **View build history**.
+
 ## Turn on sign-in
 
 Until you do this, the app shows **Turn on sign-in first** and no data.
@@ -151,7 +167,7 @@ Open `https://personal-finance.<subdomain>.workers.dev` in a private window. It 
 
 - The app syncs every day at 12:00 UTC. **Sync now** syncs at any time.
 - **Deploy button:** to get updates, sync your GitHub copy with this repo. Each push deploys again and applies new migrations.
-- **Command line:** run `git pull`, then `npm run deploy`.
+- **Command line:** run `git pull`, then `npm run deploy`. If you did [Deploy on each push](#8-deploy-on-each-push-optional), push to `main` instead.
 - To see logs, open **Workers & Pages** > **personal-finance** > **Observability**.
 
 ## Problems
@@ -163,3 +179,4 @@ Open `https://personal-finance.<subdomain>.workers.dev` in a private window. It 
 | **Add your Plaid keys** | `PLAID_CLIENT_ID` or `PLAID_SECRET` is not set. See [Add your Plaid keys](#6-add-your-plaid-keys). |
 | SSL error just after you set or change the subdomain | Wait a few minutes. |
 | `wrangler login` says "Timed out waiting for authorization code" | Run it again in your own terminal and click **Allow** within 2 minutes. |
+| A build fails at the migration step with "not authorized" (code 7403) | The build token has no D1 access. In **Settings** > **Builds** > **Advanced settings**, choose **Create new token**. |
