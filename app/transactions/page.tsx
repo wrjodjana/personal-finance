@@ -7,13 +7,15 @@ import { MonthPicker } from "@/components/MonthPicker";
 import { RowMenu } from "@/components/RowMenu";
 import { SetupNotice } from "@/components/SetupNotice";
 import { TransactionFilters } from "@/components/TransactionFilters";
-import { CATEGORIES, CATEGORY_KEYS } from "@/lib/categories";
+import { CATEGORIES } from "@/lib/categories";
 import { institutionLogoUrl } from "@/lib/branding";
 import { getDb } from "@/lib/db";
 import {
   accountLabel,
   availableMonths,
-  loadLedger,
+  inMonths,
+  loadActiveEntries,
+  rankCategories,
   SPENDING_ACCOUNT_TYPES,
   type LedgerEntry,
 } from "@/lib/ledger";
@@ -156,8 +158,9 @@ export default async function TransactionsPage({
   const params = await searchParams;
   const month = parseMonth(params.month);
   const filters = parseFilters(params);
+  const allEntries = await loadActiveEntries();
   const entries = sortEntries(
-    (await loadLedger(month, month)).filter((entry) => matchesFilters(entry, filters)),
+    inMonths(allEntries, month, month).filter((entry) => matchesFilters(entry, filters)),
     filters,
   );
   const days = filters.sort === "date" ? groupByDay(entries) : [];
@@ -186,8 +189,9 @@ export default async function TransactionsPage({
 
   const trashCount = (await getDb().select({ total: count() }).from(deletedTransactions).get())?.total ?? 0;
 
-  const categoryOptions = CATEGORY_KEYS.map((key) => ({ value: key, label: CATEGORIES[key].label }));
-  const categoryFilterOptions = CATEGORY_KEYS.map((key) => ({ value: key, label: CATEGORIES[key].label, color: CATEGORIES[key].color }));
+  const categoryKeys = rankCategories(allEntries);
+  const categoryOptions = categoryKeys.map((key) => ({ value: key, label: CATEGORIES[key].label }));
+  const categoryFilterOptions = categoryKeys.map((key) => ({ value: key, label: CATEGORIES[key].label, color: CATEGORIES[key].color }));
   const monthOptions = (await availableMonths()).map((value) => ({ value, label: monthLabel(value, "medium") }));
 
   return (

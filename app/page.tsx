@@ -7,7 +7,7 @@ import { SetupNotice } from "@/components/SetupNotice";
 import { SpendingChart, type ChartRow, type ChartSeries } from "@/components/SpendingChart";
 import { categoryMeta } from "@/lib/categories";
 import { getDb } from "@/lib/db";
-import { availableMonths, loadLedger, monthRange, summarize, type LedgerEntry } from "@/lib/ledger";
+import { availableMonths, inMonths, loadActiveEntries, monthRange, rankCategories, summarize, type LedgerEntry } from "@/lib/ledger";
 import { addMonths, currentMonth, daysInMonth, formatCents, formatDate, monthLabel, parseMonth } from "@/lib/months";
 import { plaidConfigured } from "@/lib/plaid";
 import { items } from "@/lib/schema";
@@ -62,7 +62,8 @@ export default async function SpendingPage({
   const month = parseMonth((await searchParams).month);
   const previousMonth = addMonths(month, -1);
   const chartMonths = monthRange(month, 12);
-  const ledger = await loadLedger(chartMonths[0], month);
+  const allEntries = await loadActiveEntries();
+  const ledger = inMonths(allEntries, chartMonths[0], month);
   const summary = summarize(ledger, month);
   const previous = summarize(ledger, previousMonth);
   const delta = summary.totalCents - previous.totalCents;
@@ -85,9 +86,9 @@ export default async function SpendingPage({
       if (item.cents > 0) yearTotals.set(item.category, (yearTotals.get(item.category) ?? 0) + item.cents);
     }
   }
-  const series: ChartSeries[] = [...yearTotals.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([category]) => ({ key: category, label: categoryMeta(category).label, color: categoryMeta(category).color }));
+  const series: ChartSeries[] = rankCategories(allEntries)
+    .filter((category) => yearTotals.has(category))
+    .map((category) => ({ key: category, label: categoryMeta(category).label, color: categoryMeta(category).color }));
   const rows: ChartRow[] = chartMonths.map((chartMonth, index) => ({
     month: chartMonth,
     label: monthLabel(chartMonth, "short").split(" ")[0],

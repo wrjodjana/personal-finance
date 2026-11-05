@@ -1,5 +1,5 @@
 import { desc, eq, inArray, sql } from "drizzle-orm";
-import { automaticCategory, isSpendingCategory, normalizeCategory } from "./categories";
+import { automaticCategory, CATEGORY_KEYS, isSpendingCategory, normalizeCategory } from "./categories";
 import { institutionLogoUrl } from "./branding";
 import { getDb } from "./db";
 import { addMonths, currentMonth, monthEnd, monthStart } from "./months";
@@ -133,12 +133,29 @@ async function loadEntries(): Promise<LedgerEntry[]> {
   return entries.sort((a, b) => b.date.localeCompare(a.date) || b.amountCents - a.amountCents);
 }
 
-export async function loadLedger(fromMonth: string, toMonth: string): Promise<LedgerEntry[]> {
+export async function loadActiveEntries(): Promise<LedgerEntry[]> {
   const entries = (await loadEntries()).filter((entry) => !entry.deletedAt);
   matchRefunds(entries);
+  return entries;
+}
+
+export function inMonths(entries: LedgerEntry[], fromMonth: string, toMonth: string): LedgerEntry[] {
   const from = monthStart(fromMonth);
   const to = monthEnd(toMonth);
   return entries.filter((entry) => entry.date >= from && entry.date <= to);
+}
+
+const LAST_CATEGORIES = ["OTHER_INCOME", "TRANSFER", "UNCATEGORIZED"];
+
+export function rankCategories(entries: LedgerEntry[]): string[] {
+  const totals = new Map<string, number>();
+  for (const entry of entries) {
+    if (entry.isSpending) totals.set(entry.category, (totals.get(entry.category) ?? 0) + entry.amountCents);
+  }
+  const ranked = CATEGORY_KEYS.filter((key) => !LAST_CATEGORIES.includes(key)).sort(
+    (a, b) => (totals.get(b) ?? 0) - (totals.get(a) ?? 0),
+  );
+  return [...ranked, ...LAST_CATEGORIES];
 }
 
 export type RefundPair = { purchase: LedgerEntry; refund: LedgerEntry };
