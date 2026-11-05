@@ -10,8 +10,9 @@ const dbPath = path.join(dataDir, "finance.db");
 const migrationsFolder = path.join(process.cwd(), "drizzle");
 
 type Db = BetterSQLite3Database<typeof schema>;
+type Connection = { sqlite: Database.Database; db: Db };
 
-const globalForDb = globalThis as unknown as { financeDb?: Db };
+const globalForDb = globalThis as unknown as { financeConnection?: Connection };
 
 function pendingMigrationCount(sqlite: Database.Database): number {
   const journal = JSON.parse(
@@ -27,24 +28,32 @@ function pendingMigrationCount(sqlite: Database.Database): number {
   return journal.entries.length - count;
 }
 
-function open(): Db {
+function migrateWithBackup({ sqlite, db }: Connection, hasData: boolean) {
+  if (pendingMigrationCount(sqlite) === 0) return;
+  if (hasData) {
+    sqlite.pragma("wal_checkpoint(TRUNCATE)");
+    fs.copyFileSync(dbPath, `${dbPath}.bak`);
+  }
+  migrate(db, { migrationsFolder });
+}
+
+function open(): Connection {
   fs.mkdirSync(dataDir, { recursive: true });
   const existed = fs.existsSync(dbPath);
   const sqlite = new Database(dbPath);
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("foreign_keys = ON");
 
-  if (existed && pendingMigrationCount(sqlite) > 0) {
-    sqlite.pragma("wal_checkpoint(TRUNCATE)");
-    fs.copyFileSync(dbPath, `${dbPath}.bak`);
-  }
-
-  const db = drizzle(sqlite, { schema });
-  migrate(db, { migrationsFolder });
-  return db;
+  const connection = { sqlite, db: drizzle(sqlite, { schema }) };
+  migrateWithBackup(connection, existed);
+  return connection;
 }
 
 export function getDb(): Db {
-  globalForDb.financeDb ??= open();
-  return globalForDb.financeDb;
+  if (!globalForDb.financeConnection) {
+    globalForDb.financeConnection = open();
+  } else if (process.env.NODE_ENV === "development") {
+    migrateWithBackup(globalForDb.financeConnection, true);
+  }
+  return globalForDb.financeConnection.db;
 }
