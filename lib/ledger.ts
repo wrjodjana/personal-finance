@@ -2,7 +2,7 @@ import { desc, eq, inArray, sql } from "drizzle-orm";
 import { automaticCategory, isSpendingCategory, normalizeCategory } from "./categories";
 import { getDb } from "./db";
 import { addMonths, currentMonth, monthEnd, monthStart } from "./months";
-import { accounts, categoryOverrides, items, rules, transactions } from "./schema";
+import { accounts, categoryOverrides, items, removedTransactions, rules, transactions } from "./schema";
 
 export const SPENDING_ACCOUNT_TYPES = ["credit", "depository"];
 
@@ -21,6 +21,7 @@ export type LedgerEntry = {
   category: string;
   categorySource: CategorySource;
   isSpending: boolean;
+  removed: boolean;
   refundMatch: { role: "purchase" | "refund"; otherDate: string } | null;
 };
 
@@ -47,6 +48,7 @@ export function loadLedger(fromMonth: string, toMonth: string): LedgerEntry[] {
     .select({
       tx: transactions,
       override: categoryOverrides.category,
+      removedAt: removedTransactions.removedAt,
       accountName: accounts.name,
       accountMask: accounts.mask,
       institution: items.institutionName,
@@ -55,11 +57,12 @@ export function loadLedger(fromMonth: string, toMonth: string): LedgerEntry[] {
     .innerJoin(accounts, eq(transactions.accountId, accounts.id))
     .innerJoin(items, eq(accounts.itemId, items.id))
     .leftJoin(categoryOverrides, eq(categoryOverrides.transactionId, transactions.id))
+    .leftJoin(removedTransactions, eq(removedTransactions.transactionId, transactions.id))
     .where(inArray(accounts.type, SPENDING_ACCOUNT_TYPES))
     .orderBy(desc(transactions.date), desc(transactions.amountCents))
     .all();
 
-  const entries: LedgerEntry[] = rows.map(({ tx, override, accountName, accountMask, institution }) => {
+  const entries: LedgerEntry[] = rows.map(({ tx, override, removedAt, accountName, accountMask, institution }) => {
     const merchant = tx.merchantName ?? tx.name;
     let category = automaticCategory(tx);
     let categorySource: CategorySource = "plaid";
@@ -84,7 +87,8 @@ export function loadLedger(fromMonth: string, toMonth: string): LedgerEntry[] {
       accountLabel: accountLabel(institution, accountName, accountMask),
       category,
       categorySource,
-      isSpending: isSpendingCategory(category),
+      isSpending: !removedAt && isSpendingCategory(category),
+      removed: Boolean(removedAt),
       refundMatch: null,
     };
   });

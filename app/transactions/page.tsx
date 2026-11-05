@@ -1,5 +1,6 @@
 import { eq, inArray } from "drizzle-orm";
 import { CategoryCell } from "@/components/CategoryCell";
+import { RemoveButton } from "@/components/RemoveButton";
 import { MonthPicker } from "@/components/MonthPicker";
 import { Rules } from "@/components/Rules";
 import { SetupNotice } from "@/components/SetupNotice";
@@ -73,7 +74,8 @@ export default async function TransactionsPage({
                   <th className="px-6 py-2.5 font-medium">Date</th>
                   <th className="px-3 py-2.5 font-medium">Merchant</th>
                   <th className="px-3 py-2.5 font-medium">Category</th>
-                  <th className="px-6 py-2.5 text-right font-medium">Amount</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Amount</th>
+                  <th className="py-2.5 pr-4" aria-label="Actions" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
@@ -96,6 +98,11 @@ export default async function TransactionsPage({
                                 : `Refund of ${formatDate(entry.refundMatch.otherDate)} purchase`}
                             </span>
                           )}
+                          {entry.removed && (
+                            <span className="rounded bg-stone-200 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-stone-600">
+                              Not counted
+                            </span>
+                          )}
                           {entry.pending && (
                             <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-800">
                               Pending
@@ -114,12 +121,15 @@ export default async function TransactionsPage({
                         />
                       </td>
                       <td
-                        className={`tabular whitespace-nowrap px-6 py-3 text-right align-top font-medium ${
-                          !entry.isSpending ? "" : refund ? "text-emerald-600" : "text-stone-900"
+                        className={`tabular whitespace-nowrap px-3 py-3 text-right align-top font-medium ${
+                          entry.removed ? "line-through" : !entry.isSpending ? "" : refund ? "text-emerald-600" : "text-stone-900"
                         }`}
                       >
                         {refund ? "+" : ""}
                         {formatCents(Math.abs(entry.amountCents))}
+                      </td>
+                      <td className="py-2 pr-4 text-right align-top">
+                        <RemoveButton transactionId={entry.id} removed={entry.removed} />
                       </td>
                     </tr>
                   );

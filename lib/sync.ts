@@ -2,7 +2,7 @@ import { eq, inArray } from "drizzle-orm";
 import type { AccountBase, RemovedTransaction, Transaction } from "plaid";
 import { getDb } from "./db";
 import { plaid, RECONNECT_CODES, toPlaidFailure } from "./plaid";
-import { accounts, categoryOverrides, items, transactions } from "./schema";
+import { accounts, categoryOverrides, items, removedTransactions, transactions } from "./schema";
 
 export type SyncResult = {
   itemId: string;
@@ -123,6 +123,14 @@ function applyChanges(item: Item, page: SyncPage) {
             .values({ transactionId: row.id!, category: pendingOverride.category })
             .onConflictDoNothing()
             .run();
+        }
+        const pendingRemoved = tx
+          .select()
+          .from(removedTransactions)
+          .where(eq(removedTransactions.transactionId, row.pendingTransactionId))
+          .get();
+        if (pendingRemoved) {
+          tx.insert(removedTransactions).values({ transactionId: row.id! }).onConflictDoNothing().run();
         }
       }
     }

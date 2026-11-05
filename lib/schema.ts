@@ -53,6 +53,13 @@ export const categoryOverrides = sqliteTable("category_overrides", {
   category: text("category").notNull(),
 });
 
+export const removedTransactions = sqliteTable("removed_transactions", {
+  transactionId: text("transaction_id")
+    .primaryKey()
+    .references(() => transactions.id, { onDelete: "cascade" }),
+  removedAt: text("removed_at").notNull().default(sql`(datetime('now'))`),
+});
+
 export const rules = sqliteTable("rules", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   pattern: text("pattern").notNull(),
