@@ -78,10 +78,8 @@ export function CategoryCell({ transactionId, merchant, category, source, option
             {source === "override" && <option value={RESET}>↺ Reset to automatic</option>}
           </select>
         </span>
-        {source !== "plaid" && (
-          <span className="text-[10px] font-medium uppercase tracking-wide text-faint">
-            {source === "rule" ? "Rule" : "Edited"}
-          </span>
+        {source === "rule" && (
+          <span className="text-[10px] font-medium uppercase tracking-wide text-faint">Rule</span>
         )}
       </div>
       {offerRule && (
