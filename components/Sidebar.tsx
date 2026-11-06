@@ -26,9 +26,9 @@ const ICONS = {
 };
 
 const LINKS = [
-  { href: "/", label: "Spending", icon: ICONS.spending },
   { href: "/net-worth", label: "Net Worth", icon: ICONS.netWorth },
   { href: "/investments", label: "Investments", icon: ICONS.investments },
+  { href: "/", label: "Spending", icon: ICONS.spending },
   { href: "/transactions", label: "Transactions", icon: ICONS.transactions },
   { href: "/accounts", label: "Accounts", icon: ICONS.accounts },
 ];
