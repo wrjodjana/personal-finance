@@ -2,7 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { usePlaidLink, type PlaidLinkOnSuccessMetadata } from "react-plaid-link";
+import { usePlaidLink, type PlaidLinkOnSuccess, type PlaidLinkOnSuccessMetadata } from "react-plaid-link";
+
+function PlaidLauncher({ token, onSuccess, onExit }: { token: string; onSuccess: PlaidLinkOnSuccess; onExit: () => void }) {
+  const { open, ready } = usePlaidLink({ token, onSuccess, onExit });
+
+  useEffect(() => {
+    if (ready) open();
+  }, [ready, open]);
+
+  return null;
+}
 
 type Props = { itemId?: string; label: string; variant?: "primary" | "secondary" };
 
@@ -45,19 +55,6 @@ export function PlaidLinkButton({ itemId, label, variant = "primary" }: Props) {
     [itemId, router],
   );
 
-  const { open, ready } = usePlaidLink({
-    token,
-    onSuccess,
-    onExit: () => {
-      setToken(null);
-      setBusy(false);
-    },
-  });
-
-  useEffect(() => {
-    if (token && ready) open();
-  }, [token, ready, open]);
-
   async function start() {
     setBusy(true);
     setError(null);
@@ -91,6 +88,16 @@ export function PlaidLinkButton({ itemId, label, variant = "primary" }: Props) {
         {busy ? "Opening…" : label}
       </button>
       {error && <p className="text-xs text-negative">{error}</p>}
+      {token && (
+        <PlaidLauncher
+          token={token}
+          onSuccess={onSuccess}
+          onExit={() => {
+            setToken(null);
+            setBusy(false);
+          }}
+        />
+      )}
     </div>
   );
 }
