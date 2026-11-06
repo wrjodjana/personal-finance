@@ -48,7 +48,7 @@ function slice(points: HistoryPoint[], range: (typeof RANGES)[number]): { visibl
   return { visible: shown, partial: shown[0].date > from };
 }
 
-export function NetWorthChart({ points, title = "Net worth" }: { points: HistoryPoint[]; title?: string }) {
+export function NetWorthChart({ points, title = "Net Worth" }: { points: HistoryPoint[]; title?: string }) {
   const gradientId = useId();
   const [rangeKey, setRangeKey] = useState<RangeKey>("1M");
   const [hover, setHover] = useState<HistoryPoint | null>(null);

@@ -98,7 +98,7 @@ export default async function NetWorthPage() {
           <p className="eyebrow">
             {holdings.length} {holdings.length === 1 ? "account" : "accounts"}
           </p>
-          <h1 className="mt-1 text-2xl font-medium tracking-tight">Net worth</h1>
+          <h1 className="mt-1 text-2xl font-medium tracking-tight">Net Worth</h1>
         </div>
         <Link href="/accounts" className="control inline-flex h-9 items-center gap-2 px-3 text-sm hover:text-ink">
           <Icon className="size-4 text-muted">
