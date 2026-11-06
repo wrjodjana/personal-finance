@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { blob, index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { blob, index, integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const items = sqliteTable("items", {
   id: text("id").primaryKey(),
@@ -14,6 +14,7 @@ export const items = sqliteTable("items", {
   status: text("status", { enum: ["ok", "needs_reconnect", "error"] }).notNull().default("ok"),
   errorCode: text("error_code"),
   historyStatus: text("history_status"),
+  investmentsError: text("investments_error"),
   lastSyncedAt: text("last_synced_at"),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
@@ -104,3 +105,40 @@ export const balanceSnapshots = sqliteTable(
   (table) => [primaryKey({ columns: [table.accountId, table.date] })],
 );
 
+export const holdings = sqliteTable(
+  "holdings",
+  {
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    securityId: text("security_id").notNull(),
+    ticker: text("ticker"),
+    name: text("name"),
+    securityType: text("security_type"),
+    quantity: real("quantity").notNull(),
+    priceCents: integer("price_cents").notNull(),
+    valueCents: integer("value_cents").notNull(),
+    costBasisCents: integer("cost_basis_cents"),
+  },
+  (table) => [primaryKey({ columns: [table.accountId, table.securityId] })],
+);
+
+export const investmentTransactions = sqliteTable(
+  "investment_transactions",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    date: text("date").notNull(),
+    name: text("name").notNull(),
+    ticker: text("ticker"),
+    type: text("type").notNull(),
+    subtype: text("subtype").notNull(),
+    quantity: real("quantity").notNull(),
+    price: real("price").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    feesCents: integer("fees_cents"),
+  },
+  (table) => [index("investment_transactions_date_idx").on(table.date)],
+);

@@ -331,6 +331,21 @@ export default async function NetWorthPage() {
           <section className="card px-5 py-5">
             <NetWorthBreakdown slices={slices} />
           </section>
+
+          {holdings.some((holding) => holding.type === "investment") && (
+            <Link href="/investments" className="card flex items-center gap-3 px-5 py-4 transition-colors hover:bg-surface">
+              <Icon className="size-5 text-muted">
+                <path d="m3.5 14 4-4.5 3 2.5 6-6.5M12.5 5.5h4v4" strokeLinecap="round" strokeLinejoin="round" />
+              </Icon>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium">Investments</span>
+                <span className="label block">Positions, allocation and activity</span>
+              </span>
+              <Icon className="size-4 text-faint">
+                <path d="m8 4.5 5.5 5.5L8 15.5" strokeLinecap="round" strokeLinejoin="round" />
+              </Icon>
+            </Link>
+          )}
         </div>
       </div>
     </div>

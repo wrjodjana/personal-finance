@@ -14,9 +14,9 @@ function PlaidLauncher({ token, onSuccess, onExit }: { token: string; onSuccess:
   return null;
 }
 
-type Props = { itemId?: string; label: string; variant?: "primary" | "secondary" };
+type Props = { itemId?: string; label: string; variant?: "primary" | "secondary"; addInvestments?: boolean };
 
-export function PlaidLinkButton({ itemId, label, variant = "primary" }: Props) {
+export function PlaidLinkButton({ itemId, label, variant = "primary", addInvestments = false }: Props) {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -61,7 +61,7 @@ export function PlaidLinkButton({ itemId, label, variant = "primary" }: Props) {
     const response = await fetch("/api/link-token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(itemId ? { itemId } : {}),
+      body: JSON.stringify(itemId ? { itemId, addInvestments } : {}),
     });
     const body = (await response.json().catch(() => ({}))) as { linkToken?: string; error?: string };
     if (!response.ok || !body.linkToken) {

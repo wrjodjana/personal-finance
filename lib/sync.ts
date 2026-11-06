@@ -3,6 +3,7 @@ import type { BatchItem } from "drizzle-orm/batch";
 import type { AccountBase, RemovedTransaction, Transaction } from "plaid";
 import { refreshBranding } from "./branding";
 import { getDb, type Db } from "./db";
+import { syncInvestments } from "./investments";
 import { today } from "./months";
 import { plaid, RECONNECT_CODES, toPlaidFailure } from "./plaid";
 import {
@@ -227,6 +228,10 @@ export async function syncItem(item: Item): Promise<SyncResult> {
   try {
     const page = await fetchChanges(item);
     await applyChanges(item, page);
+    await syncInvestments(
+      item,
+      page.accounts.filter((account) => account.type === "investment").map((account) => account.account_id),
+    );
     return {
       ...base,
       ok: true,
