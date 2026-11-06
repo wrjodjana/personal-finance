@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Select, SELECT_TRIGGER } from "@/components/Select";
 import { categoryMeta } from "@/lib/categories";
 
 type Option = { value: string; label: string };
@@ -254,16 +255,18 @@ function EditDialog({
           </label>
           <label className="block space-y-1.5">
             <span className="label">Category</span>
-            <select className={`${field} cursor-pointer`} value={pick} onChange={(event) => setPick(event.target.value)}>
-              {!options.some((option) => option.value === category) && (
-                <option value={category}>{categoryMeta(category).label}</option>
-              )}
-              {options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <Select
+              label="Category"
+              value={pick}
+              options={[
+                ...(options.some((option) => option.value === category)
+                  ? []
+                  : [{ value: category, label: categoryMeta(category).label }]),
+                ...options,
+              ]}
+              onChange={setPick}
+              className={`${SELECT_TRIGGER} w-full`}
+            />
           </label>
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -285,10 +288,16 @@ function EditDialog({
           </label>
           <label className="block space-y-1.5">
             <span className="label">Type</span>
-            <select className={`${field} cursor-pointer`} value={direction} onChange={(event) => setDirection(event.target.value)}>
-              <option value="out">Money out</option>
-              <option value="in">Money in</option>
-            </select>
+            <Select
+              label="Type"
+              value={direction}
+              options={[
+                { value: "out", label: "Money out" },
+                { value: "in", label: "Money in" },
+              ]}
+              onChange={setDirection}
+              className={`${SELECT_TRIGGER} w-full`}
+            />
           </label>
         </div>
         {error && <p className="text-xs text-negative">{error}</p>}

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { Select } from "@/components/Select";
 
 type Option = { value: string; label: string };
 type Rule = { id: number; pattern: string; categoryLabel: string };
@@ -62,13 +63,7 @@ export function Rules({ rules, options }: { rules: Rule[]; options: Option[] }) 
           placeholder="e.g. Uber Eats"
         />
         <span className="text-sm text-muted">→</span>
-        <select className={`${field} cursor-pointer`} value={category} onChange={(event) => setCategory(event.target.value)}>
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <Select label="Category" value={category} options={options} onChange={setCategory} />
         <button
           type="submit"
           disabled={busy || pattern.trim().length < 2}

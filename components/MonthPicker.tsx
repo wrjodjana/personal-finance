@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Select } from "@/components/Select";
 
 type Props = { month: string; months: { value: string; label: string }[] };
 
@@ -33,18 +34,14 @@ export function MonthPicker({ month, months }: Props) {
           <path d="m12 5-5 5 5 5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      <select
+      <Select
+        label="Month"
         value={month}
-        onChange={(event) => go(event.target.value)}
-        aria-label="Month"
-        className="tabular h-8 min-w-24 cursor-pointer appearance-none rounded-md bg-transparent px-1 text-center text-sm font-medium hover:bg-surface focus:outline-none"
-      >
-        {months.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+        options={months}
+        onChange={go}
+        chevron={false}
+        className="tabular flex h-8 min-w-24 cursor-pointer items-center justify-center rounded-md px-1 text-sm font-medium hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-line"
+      />
       <button
         type="button"
         className={arrow}
