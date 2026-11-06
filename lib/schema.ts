@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { blob, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { blob, index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const items = sqliteTable("items", {
   id: text("id").primaryKey(),
@@ -28,6 +28,9 @@ export const accounts = sqliteTable("accounts", {
   mask: text("mask"),
   type: text("type").notNull(),
   subtype: text("subtype"),
+  currentCents: integer("current_cents"),
+  availableCents: integer("available_cents"),
+  limitCents: integer("limit_cents"),
 });
 
 export const transactions = sqliteTable(
@@ -88,3 +91,16 @@ export const deletedTransactions = sqliteTable("deleted_transactions", {
     .references(() => transactions.id, { onDelete: "cascade" }),
   deletedAt: text("deleted_at").notNull().default(sql`(datetime('now'))`),
 });
+
+export const balanceSnapshots = sqliteTable(
+  "balance_snapshots",
+  {
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    date: text("date").notNull(),
+    cents: integer("cents").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.accountId, table.date] })],
+);
+

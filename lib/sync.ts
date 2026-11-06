@@ -3,9 +3,11 @@ import type { BatchItem } from "drizzle-orm/batch";
 import type { AccountBase, RemovedTransaction, Transaction } from "plaid";
 import { refreshBranding } from "./branding";
 import { getDb, type Db } from "./db";
+import { today } from "./months";
 import { plaid, RECONNECT_CODES, toPlaidFailure } from "./plaid";
 import {
   accounts,
+  balanceSnapshots,
   categoryOverrides,
   deletedTransactions,
   items,
@@ -59,7 +61,6 @@ async function fetchChanges(item: Item): Promise<SyncPage> {
           cursor,
           count: 500,
         });
-        result.accounts = data.accounts;
         result.added.push(...data.added);
         result.modified.push(...data.modified);
         result.removed.push(...data.removed);
@@ -68,6 +69,8 @@ async function fetchChanges(item: Item): Promise<SyncPage> {
         hasMore = data.has_more;
       }
       result.cursor = cursor ?? "";
+      const { data } = await plaid().accountsGet({ access_token: item.accessToken });
+      result.accounts = data.accounts;
       return result;
     } catch (error) {
       if (toPlaidFailure(error).code !== "TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION") throw error;
@@ -93,6 +96,8 @@ function toRow(tx: Transaction): typeof transactions.$inferInsert {
   };
 }
 
+const toCents = (value: number | null | undefined) => (value === null || value === undefined ? null : Math.round(value * 100));
+
 function toAccountRow(itemId: string, account: AccountBase): typeof accounts.$inferInsert {
   return {
     id: account.account_id,
@@ -102,17 +107,32 @@ function toAccountRow(itemId: string, account: AccountBase): typeof accounts.$in
     mask: account.mask ?? null,
     type: account.type,
     subtype: account.subtype ?? null,
+    currentCents: toCents(account.balances.current),
+    availableCents: toCents(account.balances.available),
+    limitCents: toCents(account.balances.limit),
   };
 }
 
-function upsertAccount(db: Db, itemId: string, account: AccountBase) {
+function upsertAccount(db: Db, itemId: string, account: AccountBase): BatchItem<"sqlite">[] {
   const row = toAccountRow(itemId, account);
-  return db.insert(accounts).values(row).onConflictDoUpdate({ target: accounts.id, set: row });
+  const statements: BatchItem<"sqlite">[] = [
+    db.insert(accounts).values(row).onConflictDoUpdate({ target: accounts.id, set: row }),
+  ];
+  if (row.currentCents !== null && row.currentCents !== undefined) {
+    const snapshot = { accountId: row.id, date: today(), cents: row.currentCents };
+    statements.push(
+      db
+        .insert(balanceSnapshots)
+        .values(snapshot)
+        .onConflictDoUpdate({ target: [balanceSnapshots.accountId, balanceSnapshots.date], set: { cents: snapshot.cents } }),
+    );
+  }
+  return statements;
 }
 
 export async function saveAccounts(itemId: string, list: AccountBase[]) {
   const db = getDb();
-  const [first, ...rest] = list.map((account) => upsertAccount(db, itemId, account));
+  const [first, ...rest] = list.flatMap((account) => upsertAccount(db, itemId, account));
   if (first) await db.batch([first, ...rest]);
 }
 
@@ -169,7 +189,7 @@ function carryOverFromPending(db: Db, id: string, pendingId: string) {
 
 async function applyChanges(item: Item, page: SyncPage) {
   const db = getDb();
-  const statements: BatchItem<"sqlite">[] = page.accounts.map((account) => upsertAccount(db, item.id, account));
+  const statements: BatchItem<"sqlite">[] = page.accounts.flatMap((account) => upsertAccount(db, item.id, account));
 
   for (const plaidTx of [...page.added, ...page.modified]) {
     const row = toRow(plaidTx);
