@@ -7,6 +7,9 @@ const ICONS = {
   spending: (
     <path d="M4 16.5V11m5 5.5V6.5m5 10v-4m5 4V4" strokeLinecap="round" strokeLinejoin="round" />
   ),
+  netWorth: (
+    <path d="M3.5 15.5 8 10l3 3 5.5-6.5M13 6.5h3.5V10" strokeLinecap="round" strokeLinejoin="round" />
+  ),
   transactions: (
     <path d="M4 6.5h12m-12 4h12m-12 4h8" strokeLinecap="round" strokeLinejoin="round" />
   ),
@@ -21,6 +24,7 @@ const ICONS = {
 
 const LINKS = [
   { href: "/", label: "Spending", icon: ICONS.spending },
+  { href: "/net-worth", label: "Net worth", icon: ICONS.netWorth },
   { href: "/transactions", label: "Transactions", icon: ICONS.transactions },
   { href: "/accounts", label: "Accounts", icon: ICONS.accounts },
 ];
