@@ -1,47 +1,216 @@
 import Link from "next/link";
-import { CategoryPie, type PieSlice } from "@/components/CategoryPie";
 import { MerchantAvatar } from "@/components/MerchantAvatar";
-import { MonthPicker } from "@/components/MonthPicker";
+import { PendingIcon } from "@/components/PendingIcon";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
 import { SetupNotice } from "@/components/SetupNotice";
-import { SpendingChart, type ChartRow, type ChartSeries } from "@/components/SpendingChart";
-import { categoryMeta } from "@/lib/categories";
+import { TodayLabel } from "@/components/TodayLabel";
 import { getDb } from "@/lib/db";
-import { availableMonths, inMonths, loadActiveEntries, monthRange, rankCategories, summarize, type LedgerEntry } from "@/lib/ledger";
-import { addMonths, currentMonth, daysInMonth, formatCents, formatDate, monthLabel, parseMonth } from "@/lib/months";
+import { loadActiveEntries, summarize, type LedgerEntry } from "@/lib/ledger";
+import { addMonths, currentMonth, formatCents, formatDate, monthLabel } from "@/lib/months";
+import { loadHistory, loadHoldings, type HistoryPoint } from "@/lib/netWorth";
 import { plaidConfigured } from "@/lib/plaid";
 import { items } from "@/lib/schema";
 
 export const dynamic = "force-dynamic";
 
-function topMerchants(entries: LedgerEntry[]) {
-  const byMerchant = new Map<string, { name: string; logoUrl: string | null; cents: number; count: number }>();
-  for (const entry of entries) {
-    if (!entry.isSpending || entry.amountCents <= 0) continue;
-    const current = byMerchant.get(entry.merchant) ?? { name: entry.merchant, logoUrl: entry.logoUrl, cents: 0, count: 0 };
-    current.cents += entry.amountCents;
-    current.count += 1;
-    current.logoUrl ??= entry.logoUrl;
-    byMerchant.set(entry.merchant, current);
-  }
-  return [...byMerchant.values()].sort((a, b) => b.count - a.count || b.cents - a.cents).slice(0, 5);
+const INCOME_CATEGORIES = ["SALARY", "OTHER_INCOME"];
+const RECENT_COUNT = 5;
+
+function daysBefore(date: string, days: number): string {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day - days)).toISOString().slice(0, 10);
 }
 
-function Stat({ label, value, note }: { label: string; value: string; note?: React.ReactNode }) {
+function pastMonth(points: HistoryPoint[]): HistoryPoint[] {
+  const from = daysBefore(points[points.length - 1].date, 30);
+  const visible = points.filter((point) => point.date >= from);
+  return visible.length > 1 ? visible : points.slice(-2);
+}
+
+function Sparkline({ points, rising }: { points: HistoryPoint[]; rising: boolean }) {
+  const values = points.map((point) => point.cents);
+  const low = Math.min(...values);
+  const high = Math.max(...values);
+  const span = high - low || 1;
+  const line = points
+    .map((point, index) => {
+      const x = points.length > 1 ? (index / (points.length - 1)) * 100 : 0;
+      const y = 28 - ((point.cents - low) / span) * 24;
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(" ");
+  const color = rising ? "var(--color-positive)" : "var(--color-negative)";
   return (
-    <div className="card px-4 py-3.5">
-      <p className="label">{label}</p>
-      <p className="tabular mt-1 text-2xl font-medium tracking-tight">{value}</p>
-      {note && <div className="mt-1 text-xs text-muted">{note}</div>}
+    <svg viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden className="mt-auto block h-16 w-full">
+      <polygon points={`0,32 ${line} 100,32`} fill={color} fillOpacity={0.08} />
+      <polyline
+        points={line}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.75}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+async function NetWorthCard() {
+  const holdings = await loadHoldings();
+  if (holdings.length === 0) {
+    return (
+      <Link href="/net-worth" className="card row-wash flex flex-col px-4 py-4">
+        <p className="label">Net Worth</p>
+        <p className="mt-3 text-sm text-muted">No balances yet. Refresh to load your accounts.</p>
+      </Link>
+    );
+  }
+  const netCents = holdings.reduce((total, holding) => total + (holding.kind === "asset" ? holding.cents : -holding.cents), 0);
+  const points = pastMonth(await loadHistory(holdings, netCents));
+  const change = netCents - points[0].cents;
+  const share = points[0].cents !== 0 ? (Math.abs(change) / Math.abs(points[0].cents)) * 100 : 0;
+  const tone = change > 0 ? "text-positive" : change < 0 ? "text-negative" : "text-muted";
+
+  return (
+    <Link href="/net-worth" className="card row-wash flex min-h-54 flex-col overflow-hidden">
+      <div className="px-4 pt-4">
+        <p className="label">Net Worth</p>
+        <p className="tabular mt-1 text-xl font-medium tracking-tight sm:text-2xl">{formatCents(netCents)}</p>
+        <p className="tabular mt-1 text-xs">
+          <span className={tone}>
+            {change > 0 ? "▲" : change < 0 ? "▼" : ""} {formatCents(Math.abs(change))} ({share.toFixed(1)}%)
+          </span>{" "}
+          <span className="text-faint">Past month</span>
+        </p>
+      </div>
+      <Sparkline points={points} rising={change >= 0} />
+    </Link>
+  );
+}
+
+type MonthTotals = { incomeCents: number; spendingCents: number; savingsCents: number };
+
+function monthTotals(entries: LedgerEntry[], month: string): MonthTotals {
+  let incomeCents = 0;
+  let savingsCents = 0;
+  for (const entry of entries) {
+    if (entry.month !== month || entry.removed) continue;
+    if (INCOME_CATEGORIES.includes(entry.category)) incomeCents -= entry.amountCents;
+    if (entry.category === "SAVINGS") savingsCents += entry.amountCents;
+  }
+  return { incomeCents, spendingCents: summarize(entries, month).totalCents, savingsCents };
+}
+
+function Meter({
+  label,
+  cents,
+  previousCents,
+  previousLabel,
+  fill,
+}: {
+  label: string;
+  cents: number;
+  previousCents: number;
+  previousLabel: string;
+  fill: string;
+}) {
+  const ratio = previousCents > 0 ? Math.max(cents, 0) / previousCents : cents > 0 ? 1 : 0;
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-sm">{label}</span>
+        <span className="tabular flex min-w-0 flex-wrap items-baseline justify-end gap-x-1 text-sm">
+          {formatCents(cents)}
+          <span className="label hidden whitespace-nowrap sm:inline">
+            / {formatCents(previousCents)} in {previousLabel}
+          </span>
+        </span>
+      </div>
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-line">
+        <div className={`h-full rounded-full ${fill}`} style={{ width: `${Math.min(ratio, 1) * 100}%` }} />
+      </div>
     </div>
   );
 }
 
-export default async function SpendingPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+function MonthCard({ entries }: { entries: LedgerEntry[] }) {
+  const month = currentMonth();
+  const previousMonth = addMonths(month, -1);
+  const current = monthTotals(entries, month);
+  const previous = monthTotals(entries, previousMonth);
+  const previousLabel = monthLabel(previousMonth, "medium").split(" ")[0];
+  const overspent = previous.spendingCents > 0 && current.spendingCents > previous.spendingCents;
+
+  return (
+    <Link href="/spending" className="card row-wash flex min-h-54 flex-col px-4 py-4">
+      <p className="label">{monthLabel(month)}</p>
+      <div className="mt-4 space-y-5">
+        <Meter
+          label="Income"
+          cents={current.incomeCents}
+          previousCents={previous.incomeCents}
+          previousLabel={previousLabel}
+          fill="bg-positive"
+        />
+        <Meter
+          label="Spending"
+          cents={current.spendingCents}
+          previousCents={previous.spendingCents}
+          previousLabel={previousLabel}
+          fill={overspent ? "bg-negative" : "bg-ink/70"}
+        />
+        <Meter
+          label="Savings"
+          cents={current.savingsCents}
+          previousCents={previous.savingsCents}
+          previousLabel={previousLabel}
+          fill="bg-positive"
+        />
+      </div>
+    </Link>
+  );
+}
+
+function RecentCard({ entries }: { entries: LedgerEntry[] }) {
+  const recent = entries.slice(0, RECENT_COUNT);
+  return (
+    <Link href="/transactions" className="card row-wash col-span-2 block px-4 py-4">
+      <p className="label">Recent</p>
+      {recent.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">No transactions yet.</p>
+      ) : (
+        <ul className="mt-3 space-y-2.5">
+          {recent.map((entry) => {
+            const moneyIn = entry.amountCents < 0;
+            return (
+              <li key={entry.id} className={`flex items-center gap-3 ${entry.removed ? "opacity-60" : ""}`}>
+                <MerchantAvatar name={entry.merchant} logoUrl={entry.logoUrl} size={20} shape="square" />
+                <span className="min-w-0 flex-1 truncate text-sm" title={entry.description}>
+                  {entry.merchant}
+                </span>
+                <span className="tabular shrink-0 text-xs text-faint">{formatDate(entry.date)}</span>
+                <span className="flex w-28 shrink-0 items-center justify-end gap-1.5">
+                  {entry.pending && (
+                    <span className="text-faint" title="Pending">
+                      <PendingIcon />
+                    </span>
+                  )}
+                  <span className={`tabular whitespace-nowrap text-sm ${moneyIn ? "text-positive" : ""}`}>
+                    {moneyIn ? "+" : ""}
+                    {formatCents(Math.abs(entry.amountCents))}
+                  </span>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Link>
+  );
+}
+
+export default async function HomePage() {
   if (!plaidConfigured()) return <SetupNotice />;
 
   const connections = await getDb().select().from(items).all();
@@ -59,70 +228,14 @@ export default async function SpendingPage({
     );
   }
 
-  const month = parseMonth((await searchParams).month);
-  const previousMonth = addMonths(month, -1);
-  const chartMonths = monthRange(month, 12);
-  const allEntries = await loadActiveEntries();
-  const ledger = inMonths(allEntries, chartMonths[0], month);
-  const summary = summarize(ledger, month);
-  const previous = summarize(ledger, previousMonth);
-  const delta = summary.totalCents - previous.totalCents;
-  const deltaShare = previous.totalCents > 0 ? (Math.abs(delta) / previous.totalCents) * 100 : null;
+  const entries = await loadActiveEntries();
   const broken = connections.filter((item) => item.status !== "ok");
-  const importing = connections.filter((item) => item.historyStatus !== "HISTORICAL_UPDATE_COMPLETE");
-
-  const monthEntries = ledger.filter((entry) => entry.month === month);
-  const spendingEntries = monthEntries.filter((entry) => entry.isSpending);
-  const isCurrent = month === currentMonth();
-  const daysCounted = isCurrent ? new Date().getDate() : daysInMonth(month);
-  const dailyCents = Math.round(summary.totalCents / daysCounted);
-  const merchants = topMerchants(monthEntries);
-  const largest = [...spendingEntries].sort((a, b) => b.amountCents - a.amountCents).slice(0, 5);
-
-  const monthSummaries = chartMonths.map((chartMonth) => summarize(ledger, chartMonth));
-  const yearTotals = new Map<string, number>();
-  for (const monthSummary of monthSummaries) {
-    for (const item of monthSummary.categories) {
-      if (item.cents > 0) yearTotals.set(item.category, (yearTotals.get(item.category) ?? 0) + item.cents);
-    }
-  }
-  const series: ChartSeries[] = rankCategories(allEntries)
-    .filter((category) => yearTotals.has(category))
-    .map((category) => ({ key: category, label: categoryMeta(category).label, color: categoryMeta(category).color }));
-  const rows: ChartRow[] = chartMonths.map((chartMonth, index) => ({
-    month: chartMonth,
-    label: monthLabel(chartMonth, "short").split(" ")[0],
-    longLabel: monthLabel(chartMonth),
-    total: monthSummaries[index].totalCents / 100,
-    selected: chartMonth === month,
-    values: Object.fromEntries(
-      monthSummaries[index].categories.filter((item) => item.cents > 0).map((item) => [item.category, item.cents / 100]),
-    ),
-  }));
-
-  const purchasesCents = summary.categories.reduce((sum, item) => sum + Math.max(item.cents, 0), 0);
-  const slices: PieSlice[] = summary.categories
-    .filter((item) => item.cents > 0)
-    .map((item) => {
-      const meta = categoryMeta(item.category);
-      return {
-        category: item.category,
-        label: meta.label,
-        color: meta.color,
-        cents: item.cents,
-        href: `/transactions?month=${month}&category=${item.category}`,
-      };
-    });
-  const monthOptions = (await availableMonths()).map((value) => ({ value, label: monthLabel(value, "medium") }));
 
   return (
-    <div className="space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow">{monthLabel(month)}</p>
-          <h1 className="mt-1 text-2xl font-medium tracking-tight">Spending</h1>
-        </div>
-        <MonthPicker month={month} months={monthOptions} />
+    <div className="mx-auto max-w-2xl space-y-8 md:pt-17.5">
+      <header>
+        <TodayLabel />
+        <h1 className="sr-only">Home</h1>
       </header>
 
       {broken.length > 0 && (
@@ -136,146 +249,11 @@ export default async function SpendingPage({
           </Link>
         </div>
       )}
-      {importing.length > 0 && broken.length === 0 && (
-        <div className="rounded-xl border border-edge bg-surface px-4 py-3 text-sm text-muted">
-          Plaid is still importing your history. Refresh in a few minutes to load older months.
-        </div>
-      )}
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Stat
-          label="Spent"
-          value={formatCents(summary.totalCents)}
-          note={
-            previous.totalCents !== 0 ? (
-              <span>
-                <span className={delta > 0 ? "text-negative" : "text-positive"}>
-                  {delta > 0 ? "▲" : "▼"} {formatCents(Math.abs(delta))}
-                  {deltaShare !== null && ` (${deltaShare.toFixed(1)}%)`}
-                </span>{" "}
-                vs {monthLabel(previousMonth, "medium").split(" ")[0]}
-              </span>
-            ) : (
-              "No spending last month"
-            )
-          }
-        />
-        <Stat
-          label="Daily average"
-          value={formatCents(dailyCents)}
-          note={`Over ${daysCounted} ${daysCounted === 1 ? "day" : "days"}${isCurrent ? " so far" : ""}`}
-        />
-        <Stat
-          label="Transactions"
-          value={String(spendingEntries.length)}
-          note={`In ${summary.categories.length} ${summary.categories.length === 1 ? "category" : "categories"}`}
-        />
-      </div>
-
-      <section className="card px-4 pt-4 pb-3">
-        <SpendingChart rows={rows} series={series} />
-      </section>
-
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <section className="card">
-          <div className="flex items-baseline justify-between gap-4 px-5 pt-4 pb-2">
-            <h2 className="text-sm font-medium">Categories</h2>
-            <Link href={`/transactions?month=${month}`} className="label hover:text-ink">
-              View all transactions →
-            </Link>
-          </div>
-          {summary.categories.length === 0 ? (
-            <p className="px-5 pt-6 pb-8 text-center text-sm text-muted">No spending in {monthLabel(month)}.</p>
-          ) : (
-            <ul className="pb-2">
-              {summary.categories.map((item) => {
-                const meta = categoryMeta(item.category);
-                const refund = item.cents < 0;
-                const share = purchasesCents > 0 && !refund ? (item.cents / purchasesCents) * 100 : 0;
-                return (
-                  <li key={item.category}>
-                    <Link
-                      href={`/transactions?month=${month}&category=${item.category}`}
-                      className="grid grid-cols-[minmax(0,1fr)_5rem_2.75rem] items-center gap-x-3 px-5 py-2.5 transition sm:grid-cols-[minmax(0,1fr)_6.5rem_3.5rem] sm:gap-x-4 hover:bg-surface"
-                    >
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <span className="size-2.5 shrink-0 rounded-full" style={{ background: meta.color }} />
-                        <span className="truncate text-sm">{meta.label}</span>
-                        <span className="tabular text-xs text-faint">{item.count}</span>
-                      </div>
-                      <span
-                        className={`tabular whitespace-nowrap text-right text-sm font-medium ${refund ? "text-positive" : ""}`}
-                      >
-                        {refund ? "+" : ""}
-                        {formatCents(Math.abs(item.cents))}
-                      </span>
-                      <span className={`tabular whitespace-nowrap text-right text-xs ${refund ? "text-positive" : "text-muted"}`}>
-                        {refund ? "Refund" : `${share.toFixed(1)}%`}
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-
-        <section className="card px-5 pt-4 pb-5">
-          <h2 className="text-sm font-medium">Share of spending</h2>
-          {slices.length === 0 ? (
-            <p className="pt-6 pb-3 text-center text-sm text-muted">Nothing to show.</p>
-          ) : (
-            <div className="mt-4">
-              <CategoryPie slices={slices} />
-            </div>
-          )}
-        </section>
-      </div>
-
-      <div className="grid gap-5 md:grid-cols-2">
-        <section className="card">
-          <h2 className="px-5 pt-4 pb-2 text-sm font-medium">Frequent merchants</h2>
-          {merchants.length === 0 ? (
-            <p className="px-5 pb-6 text-sm text-muted">No purchases yet.</p>
-          ) : (
-            <ul className="pb-2">
-              {merchants.map((merchant) => (
-                <li key={merchant.name} className="flex items-center gap-3 px-5 py-2">
-                  <MerchantAvatar name={merchant.name} logoUrl={merchant.logoUrl} size={28} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm">{merchant.name}</p>
-                    <p className="label">
-                      {merchant.count} {merchant.count === 1 ? "purchase" : "purchases"}
-                    </p>
-                  </div>
-                  <span className="tabular text-sm font-medium">{formatCents(merchant.cents)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="card">
-          <h2 className="px-5 pt-4 pb-2 text-sm font-medium">Largest transactions</h2>
-          {largest.length === 0 ? (
-            <p className="px-5 pb-6 text-sm text-muted">No purchases yet.</p>
-          ) : (
-            <ul className="pb-2">
-              {largest.map((entry) => (
-                <li key={entry.id} className="flex items-center gap-3 px-5 py-2">
-                  <MerchantAvatar name={entry.merchant} logoUrl={entry.logoUrl} size={28} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm">{entry.merchant}</p>
-                    <p className="label">
-                      {formatDate(entry.date)} · {categoryMeta(entry.category).label}
-                    </p>
-                  </div>
-                  <span className="tabular text-sm font-medium">{formatCents(entry.amountCents)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+      <div className="grid grid-cols-2 gap-4">
+        <NetWorthCard />
+        <MonthCard entries={entries} />
+        <RecentCard entries={entries} />
       </div>
     </div>
   );

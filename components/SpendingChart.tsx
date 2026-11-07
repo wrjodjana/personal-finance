@@ -130,7 +130,7 @@ export function SpendingChart({ rows, series }: { rows: ChartRow[]; series: Char
             onClick={(state) => {
               const index = Number(state?.activeTooltipIndex);
               const row = Number.isInteger(index) ? rows[index] : undefined;
-              if (row) router.push(`/?month=${row.month}`);
+              if (row) router.push(`/spending?month=${row.month}`);
             }}
           >
             <CartesianGrid vertical={false} stroke="oklch(0.94 0.003 75)" />

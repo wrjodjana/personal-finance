@@ -4,6 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ICONS = {
+  home: (
+    <path d="M3.5 9 10 3.5 16.5 9M5 7.75V16.5h3.5v-4.5h3v4.5H15V7.75" strokeLinecap="round" strokeLinejoin="round" />
+  ),
   spending: (
     <path d="M4 16.5V11m5 5.5V6.5m5 10v-4m5 4V4" strokeLinecap="round" strokeLinejoin="round" />
   ),
@@ -26,9 +29,10 @@ const ICONS = {
 };
 
 const LINKS = [
+  { href: "/", label: "Home", icon: ICONS.home },
   { href: "/net-worth", label: "Net Worth", icon: ICONS.netWorth },
   { href: "/investments", label: "Investments", icon: ICONS.investments },
-  { href: "/", label: "Spending", icon: ICONS.spending },
+  { href: "/spending", label: "Spending", icon: ICONS.spending },
   { href: "/transactions", label: "Transactions", icon: ICONS.transactions },
   { href: "/accounts", label: "Accounts", icon: ICONS.accounts },
 ];
