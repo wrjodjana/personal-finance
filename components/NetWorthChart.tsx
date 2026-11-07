@@ -32,7 +32,7 @@ function dayLabel(date: string): string {
   });
 }
 
-function slice(points: HistoryPoint[], range: (typeof RANGES)[number]): { visible: HistoryPoint[]; partial: boolean } {
+function slice(points: HistoryPoint[], range: (typeof RANGES)[number]): HistoryPoint[] {
   const last = points[points.length - 1];
   let from: string;
   if (range.days === null) {
@@ -44,8 +44,7 @@ function slice(points: HistoryPoint[], range: (typeof RANGES)[number]): { visibl
     from = new Date(Date.UTC(year, month - 1, day - range.days)).toISOString().slice(0, 10);
   }
   const visible = points.filter((point) => point.date >= from);
-  const shown = visible.length > 1 ? visible : points.length > 1 ? points.slice(-2) : [last, last];
-  return { visible: shown, partial: shown[0].date > from };
+  return visible.length > 1 ? visible : points.length > 1 ? points.slice(-2) : [last, last];
 }
 
 export function NetWorthChart({ points, title = "Net Worth" }: { points: HistoryPoint[]; title?: string }) {
@@ -53,7 +52,7 @@ export function NetWorthChart({ points, title = "Net Worth" }: { points: History
   const [rangeKey, setRangeKey] = useState<RangeKey>("1M");
   const [hover, setHover] = useState<HistoryPoint | null>(null);
   const range = RANGES.find((item) => item.key === rangeKey)!;
-  const { visible, partial } = slice(points, range);
+  const visible = slice(points, range);
   const first = visible[0];
   const last = visible[visible.length - 1];
   const shown = hover ?? last;
@@ -78,7 +77,7 @@ export function NetWorthChart({ points, title = "Net Worth" }: { points: History
           <span className={change > 0 ? "text-positive" : change < 0 ? "text-negative" : undefined}>
             {change < 0 ? "-" : change > 0 ? "+" : ""}${dollars(change)} ({Math.abs(share).toFixed(change === 0 ? 0 : 1)}%)
           </span>{" "}
-          {hover ? `since ${dayLabel(first.date)}` : first.date === last.date ? "Today" : partial ? `Since ${dayLabel(first.date)}` : range.label}
+          {hover ? `since ${dayLabel(first.date)}` : range.label}
         </p>
       </div>
       <div className="mt-4 h-40 w-full">
