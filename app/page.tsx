@@ -6,7 +6,7 @@ import { SetupNotice } from "@/components/SetupNotice";
 import { TodayLabel } from "@/components/TodayLabel";
 import { getDb } from "@/lib/db";
 import { loadActiveEntries, summarize, type LedgerEntry } from "@/lib/ledger";
-import { addMonths, currentMonth, formatCents, formatDate, monthLabel } from "@/lib/months";
+import { addMonths, currentMonth, daysBefore, formatCents, formatDate, monthLabel } from "@/lib/months";
 import { loadHistory, loadHoldings, type HistoryPoint } from "@/lib/netWorth";
 import { plaidConfigured } from "@/lib/plaid";
 import { items } from "@/lib/schema";
@@ -15,11 +15,6 @@ export const dynamic = "force-dynamic";
 
 const INCOME_CATEGORIES = ["SALARY", "OTHER_INCOME"];
 const RECENT_COUNT = 5;
-
-function daysBefore(date: string, days: number): string {
-  const [year, month, day] = date.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day - days)).toISOString().slice(0, 10);
-}
 
 function pastMonth(points: HistoryPoint[]): HistoryPoint[] {
   const from = daysBefore(points[points.length - 1].date, 30);

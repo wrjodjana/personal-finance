@@ -30,6 +30,8 @@ Follow **[docs/deploy.md](docs/deploy.md)**. It has every step, with the Deploy 
 
 The app syncs every day at 12:00 UTC. **Sync now** syncs at any time.
 
+The app uses the `TIME_ZONE` var in `wrangler.jsonc` (an IANA name, such as `America/New_York`) for "today" and "this month", and for the date of each saved balance. Set it to your time zone. If it is not set, the app uses UTC.
+
 If you use Claude Code, ask it to "deploy this to Cloudflare". The `deploy` skill in `.claude/skills/` takes you through the same steps.
 
 ### How your data is kept safe

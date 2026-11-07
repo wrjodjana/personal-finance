@@ -1,8 +1,29 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+export function timeZone(): string {
+  return getCloudflareContext().env.TIME_ZONE || "UTC";
+}
+
+export function today(): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timeZone(),
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)!.value;
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 export function currentMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  return today().slice(0, 7);
+}
+
+export function daysBefore(date: string, days: number): string {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day - days)).toISOString().slice(0, 10);
 }
 
 export function parseMonth(value: string | string[] | undefined): string {
@@ -64,8 +85,4 @@ export function formatDate(date: string): string {
     day: "numeric",
     timeZone: "UTC",
   });
-}
-
-export function today(): string {
-  return new Date().toISOString().slice(0, 10);
 }

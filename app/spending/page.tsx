@@ -8,7 +8,7 @@ import { SpendingChart, type ChartRow, type ChartSeries } from "@/components/Spe
 import { categoryMeta } from "@/lib/categories";
 import { getDb } from "@/lib/db";
 import { availableMonths, inMonths, loadActiveEntries, monthRange, rankCategories, summarize, type LedgerEntry } from "@/lib/ledger";
-import { addMonths, currentMonth, daysInMonth, formatCents, formatDate, monthLabel, parseMonth } from "@/lib/months";
+import { addMonths, currentMonth, daysInMonth, formatCents, formatDate, monthLabel, parseMonth, today } from "@/lib/months";
 import { plaidConfigured } from "@/lib/plaid";
 import { items } from "@/lib/schema";
 
@@ -74,7 +74,7 @@ export default async function SpendingPage({
   const monthEntries = ledger.filter((entry) => entry.month === month);
   const spendingEntries = monthEntries.filter((entry) => entry.isSpending);
   const isCurrent = month === currentMonth();
-  const daysCounted = isCurrent ? new Date().getDate() : daysInMonth(month);
+  const daysCounted = isCurrent ? Number(today().slice(8)) : daysInMonth(month);
   const dailyCents = Math.round(summary.totalCents / daysCounted);
   const merchants = topMerchants(monthEntries);
   const largest = [...spendingEntries].sort((a, b) => b.amountCents - a.amountCents).slice(0, 5);

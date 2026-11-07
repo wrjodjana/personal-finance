@@ -2,7 +2,7 @@ import { and, eq, gte, inArray } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import type { InvestmentTransaction, Security } from "plaid";
 import { getDb } from "./db";
-import { today } from "./months";
+import { daysBefore, today } from "./months";
 import { plaid, toPlaidFailure } from "./plaid";
 import { holdings, investmentTransactions, items } from "./schema";
 
@@ -12,12 +12,6 @@ const HISTORY_DAYS = 730;
 const PAGE_SIZE = 500;
 
 const cents = (value: number) => Math.round(value * 100);
-
-function daysAgo(days: number): string {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() - days);
-  return date.toISOString().slice(0, 10);
-}
 
 async function fetchActivity(item: Item, start: string) {
   const activity: InvestmentTransaction[] = [];
@@ -43,7 +37,7 @@ export async function syncInvestments(item: Item, accountIds: string[]): Promise
   const db = getDb();
   try {
     const { data } = await plaid().investmentsHoldingsGet({ access_token: item.accessToken });
-    const start = daysAgo(HISTORY_DAYS);
+    const start = daysBefore(today(), HISTORY_DAYS);
     const { activity, securities } = await fetchActivity(item, start);
     const byId = new Map([...data.securities, ...securities].map((security) => [security.security_id, security]));
 

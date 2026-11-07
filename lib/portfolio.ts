@@ -1,5 +1,6 @@
 import { desc, inArray } from "drizzle-orm";
 import { getDb } from "./db";
+import { today } from "./months";
 import type { Holding } from "./netWorth";
 import { holdings, investmentTransactions } from "./schema";
 
@@ -32,7 +33,7 @@ export function assetClassLabel(type: string | null): string {
 export async function loadPortfolio(accounts: Holding[]) {
   const accountIds = accounts.map((account) => account.id);
   const db = getDb();
-  const yearStart = `${new Date().getUTCFullYear()}-01-01`;
+  const yearStart = `${today().slice(0, 4)}-01-01`;
   const [positions, activity] = await Promise.all([
     db.select().from(holdings).where(inArray(holdings.accountId, accountIds)).all(),
     db
