@@ -19,7 +19,8 @@ const RECENT_COUNT = 5;
 function pastMonth(points: HistoryPoint[]): HistoryPoint[] {
   const from = daysBefore(points[points.length - 1].date, 30);
   const visible = points.filter((point) => point.date >= from);
-  return visible.length > 1 ? visible : points.slice(-2);
+  if (visible.length > 1) return visible;
+  return points.length > 1 ? points.slice(-2) : [points[0], points[0]];
 }
 
 function Sparkline({ points, rising }: { points: HistoryPoint[]; rising: boolean }) {
