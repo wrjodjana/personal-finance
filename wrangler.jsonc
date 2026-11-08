@@ -4,8 +4,6 @@
   "main": "worker.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
-  "workers_dev": false,
-  "routes": [{ "pattern": "finance.wrjodjana.me", "custom_domain": true }],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
@@ -20,15 +18,11 @@
     {
       "binding": "DB",
       "database_name": "personal-finance",
-      "database_id": "51073afa-5206-4855-b244-52564d55567a",
       "migrations_dir": "drizzle"
     }
   ],
   "triggers": {
     "crons": ["0 12 * * *"]
-  },
-  "vars": {
-    "TIME_ZONE": "America/Los_Angeles"
   },
   "keep_vars": true,
   "observability": {

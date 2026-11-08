@@ -67,18 +67,7 @@ The app address is `personal-finance.<subdomain>.workers.dev`. A new subdomain c
 npx wrangler d1 create personal-finance
 ```
 
-Copy the `database_id` from the output into `wrangler.jsonc`, in place of the ID that is there:
-
-```jsonc
-"d1_databases": [
-  {
-    "binding": "DB",
-    "database_name": "personal-finance",
-    "database_id": "<your database_id>",
-    "migrations_dir": "drizzle"
-  }
-]
-```
+Do not change `wrangler.jsonc`. Wrangler finds the database by its name, `personal-finance`.
 
 ### 5. Deploy
 
@@ -162,6 +151,25 @@ If you used the Deploy button and do not use the command line, add them in the d
 ### 4. Check
 
 Open `https://personal-finance.<subdomain>.workers.dev` in a private window. It must send you to a Cloudflare sign-in page. After you sign in, you see the app.
+
+## Set your time zone
+
+The app uses UTC for "today" and "this month" until you set your time zone.
+
+1. Open **Workers & Pages** > **personal-finance** > **Settings** > **Variables and Secrets** and click **Add**.
+2. Set **Type** to **Text**, **Variable name** to `TIME_ZONE` and **Value** to your IANA time zone, for example `America/New_York`.
+3. Click **Deploy**.
+
+Deploys keep this value, because `wrangler.jsonc` has `keep_vars: true`.
+
+## Use your own domain (optional)
+
+If you have a domain on your Cloudflare account, you can open the app at it, for example `finance.example.com`. Add the domain to the deploy command:
+
+- **Command line:** `npm run deploy -- --domain finance.example.com`
+- **Deploy on each push or Deploy button:** in **Settings** > **Builds**, set **Deploy command** to `npm run deploy -- --domain finance.example.com`.
+
+With a domain, the deploy turns off the workers.dev address. Make sure the Access app of the Worker covers the new domain: open **Zero Trust** > **Access** > **Applications** and check its hostnames.
 
 ## After setup
 

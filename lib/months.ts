@@ -2,8 +2,10 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+type Env = CloudflareEnv & { TIME_ZONE?: string };
+
 export function timeZone(): string {
-  return getCloudflareContext().env.TIME_ZONE || "UTC";
+  return (getCloudflareContext().env as Env).TIME_ZONE || "UTC";
 }
 
 export function today(): string {

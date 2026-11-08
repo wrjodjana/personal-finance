@@ -30,7 +30,9 @@ Follow **[docs/deploy.md](docs/deploy.md)**. It has every step, with the Deploy 
 
 The app syncs every day at 12:00 UTC. **Sync now** syncs at any time.
 
-The app uses the `TIME_ZONE` var in `wrangler.jsonc` (an IANA name, such as `America/New_York`) for "today" and "this month", and for the date of each saved balance. Set it to your time zone. If it is not set, the app uses UTC.
+The app uses the `TIME_ZONE` variable (an IANA name, such as `America/New_York`) for "today" and "this month", and for the date of each saved balance. Set it in the Cloudflare dashboard, as [docs/deploy.md](docs/deploy.md#set-your-time-zone) shows. If it is not set, the app uses UTC.
+
+`wrangler.jsonc` has nothing that is only for one person. Your database, time zone and domain stay in your Cloudflare account, so you can deploy your fork with no changes.
 
 If you use Claude Code, ask it to "deploy this to Cloudflare". The `deploy` skill in `.claude/skills/` takes you through the same steps.
 

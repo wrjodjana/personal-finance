@@ -36,7 +36,7 @@ If it is not set, `npm run deploy` fails with "Could not automatically register 
 npx wrangler d1 create personal-finance
 ```
 
-Put the printed `database_id` in `wrangler.jsonc` under the `DB` binding. Commit it: the ID is not secret.
+Do not put the `database_id` in `wrangler.jsonc`. Wrangler finds the database by its `database_name`, and the deploy links it to the Worker. Keep `wrangler.jsonc` free of values for one person, so forks deploy with no changes.
 
 ### 4. Deploy
 
@@ -85,10 +85,18 @@ printf '%s' "<AUD tag>" | npx wrangler secret put POLICY_AUD
 
 The curl from step 4 must return `302` to the Access login. Ask the user to open the app in a private window, sign in and check their transactions.
 
+### 9. Time zone
+
+Ask for the user's IANA time zone, then set it as a plain-text variable in the dashboard: Worker > **Settings** > **Variables and Secrets** > **Add**, type **Text**, name `TIME_ZONE`. `keep_vars: true` keeps it on each deploy. Without it, the app uses UTC.
+
+### 10. Own domain (optional)
+
+Pass the domain to the deploy: `npm run deploy -- --domain <domain>`. With Workers Builds, set the deploy command to the same. Do not put the domain in `wrangler.jsonc`. With a domain, wrangler turns off workers.dev. Check that the Worker's Access app covers the domain.
+
 ## How the app fits together
 
 - `worker.ts` is the Worker entry. It checks the `Cf-Access-Jwt-Assertion` JWT with `jose` and fails closed: `503` setup page if `TEAM_DOMAIN` or `POLICY_AUD` is missing, `403` if the token is not valid. Its `scheduled` handler calls `/api/sync` for the daily cron.
-- `wrangler.jsonc` has the `DB` binding (`migrations_dir: drizzle`), the cron and `keep_vars: true`.
+- `wrangler.jsonc` has the `DB` binding (`database_name` only, `migrations_dir: drizzle`), the cron and `keep_vars: true`. It has no database ID, domain or time zone.
 - `lib/db.ts` gets D1 from `getCloudflareContext()`. Local `npm run dev` uses a local D1 in `.wrangler/` with no sign-in.
 
 ## Problems
