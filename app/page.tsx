@@ -118,9 +118,9 @@ function Meter({
   const ratio = previousCents > 0 ? Math.max(cents, 0) / previousCents : cents > 0 ? 1 : 0;
   return (
     <div>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+      <div className="flex flex-col">
         <span className="text-sm">{label}</span>
-        <span className="tabular ml-auto flex flex-wrap items-baseline justify-end gap-x-1 text-sm">
+        <span className="tabular flex flex-wrap items-baseline justify-end gap-x-1 text-sm">
           <Money cents={cents} />
           <span className="label hidden whitespace-nowrap sm:inline">
             / <Money cents={previousCents} /> in {previousLabel}
