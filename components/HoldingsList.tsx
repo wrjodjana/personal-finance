@@ -28,7 +28,12 @@ const GROUP_LABELS: Record<GroupBy, string> = {
   none: "No grouping",
 };
 
-const COLUMNS = "grid grid-cols-[minmax(0,1fr)_5.5rem_1rem] sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_5.5rem_4.5rem_1rem] items-center gap-x-4";
+const COLUMNS =
+  "grid grid-cols-[minmax(0,1fr)_max(5.5rem,var(--value-width))_1rem] @xl:grid-cols-[minmax(0,1fr)_max(6.5rem,var(--value-width))_max(5.5rem,var(--gain-width))_4.5rem_1rem] @3xl:grid-cols-[minmax(0,1fr)_6.5rem_max(6.5rem,var(--value-width))_max(5.5rem,var(--gain-width))_4.5rem_1rem] items-center gap-x-4";
+
+function widthFor(texts: string[]): string {
+  return `${Math.max(0, ...texts.map((text) => text.length)) + 1}ch`;
+}
 
 function percentText(value: number): string {
   const size = Math.abs(value);
@@ -69,8 +74,8 @@ function GainCells({ rows }: { rows: HoldingRow[] }) {
   if (!gain) {
     return (
       <>
-        <span className="hidden text-right text-faint sm:block">-</span>
-        <span className="hidden text-right text-faint sm:block">-</span>
+        <span className="hidden text-right text-faint @xl:block">-</span>
+        <span className="hidden text-right text-faint @xl:block">-</span>
       </>
     );
   }
@@ -78,11 +83,11 @@ function GainCells({ rows }: { rows: HoldingRow[] }) {
   const sign = gain.cents > 0 ? "+" : gain.cents < 0 ? "-" : "";
   return (
     <>
-      <span className={`tabular hidden text-right text-sm sm:block ${up ? "text-positive" : "text-negative"}`}>
+      <span className={`tabular hidden text-right text-sm @xl:block ${up ? "text-positive" : "text-negative"}`}>
         {sign}
         {dollars(Math.abs(gain.cents))}
       </span>
-      <span className="hidden justify-end sm:flex">
+      <span className="hidden justify-end @xl:flex">
         <span
           className={`tabular rounded-full border px-1.5 py-px text-[0.6875rem] leading-4 ${
             up ? "border-positive/25 bg-positive/10 text-positive" : "border-negative/25 bg-negative/10 text-negative"
@@ -150,9 +155,14 @@ export function HoldingsList({ rows, totalCents }: { rows: HoldingRow[]; totalCe
     }))
     .sort((a, b) => b.valueCents - a.valueCents);
   const share = (cents: number) => (totalCents > 0 ? (cents / totalCents) * 100 : 0);
+  const gains = [...sorted.map((group) => group.members), ...visible.map((row) => [row])].map(gainOf);
+  const widths = {
+    "--value-width": widthFor(sorted.flatMap((group) => [group.valueCents, ...group.members.map((row) => row.valueCents)]).map(dollars)),
+    "--gain-width": widthFor(gains.map((gain) => (gain ? `+${dollars(Math.abs(gain.cents))}` : ""))),
+  } as React.CSSProperties;
 
   return (
-    <div className="space-y-4">
+    <div className="@container space-y-4" style={widths}>
       <div className="flex flex-wrap items-center gap-3">
         <label className="control flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full px-3.5 sm:max-w-80">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="size-4 shrink-0 text-muted" aria-hidden>
@@ -191,7 +201,7 @@ export function HoldingsList({ rows, totalCents }: { rows: HoldingRow[]; totalCe
                 {group.members.length} {group.members.length === 1 ? "position" : "positions"}
               </span>
             </p>
-            <div className="hidden sm:block">
+            <div className="hidden @3xl:block">
               <ShareBar share={share(group.valueCents)} />
             </div>
             <span className="tabular text-right text-sm font-medium">{dollars(group.valueCents)}</span>
@@ -218,7 +228,7 @@ export function HoldingsList({ rows, totalCents }: { rows: HoldingRow[]; totalCe
                       <span className="max-w-28 shrink-0 truncate text-sm font-medium">{row.ticker ?? row.name}</span>
                       {row.ticker && row.name && <span className="min-w-0 truncate text-sm text-muted">{row.name}</span>}
                     </span>
-                    <span className="hidden sm:block">
+                    <span className="hidden @3xl:block">
                       <ShareBar share={share(row.valueCents)} />
                     </span>
                     <span className="tabular text-right text-sm">{dollars(row.valueCents)}</span>

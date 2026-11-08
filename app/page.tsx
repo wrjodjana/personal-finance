@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CurrencySwitch } from "@/components/CurrencySwitch";
 import { MerchantAvatar } from "@/components/MerchantAvatar";
-import { Money } from "@/components/MoneyProvider";
+import { FittedMoney, Money } from "@/components/MoneyProvider";
 import { PendingIcon } from "@/components/PendingIcon";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
 import { SetupNotice } from "@/components/SetupNotice";
@@ -72,9 +72,11 @@ async function NetWorthCard() {
 
   return (
     <Link href="/net-worth" className="card row-wash flex min-h-54 flex-col overflow-hidden">
-      <div className="px-4 pt-4">
+      <div className="@container px-4 pt-4">
         <p className="label">Net Worth</p>
-        <p className="tabular mt-1 text-xl font-medium tracking-tight sm:text-2xl"><Money cents={netCents} /></p>
+        <p className="tabular mt-1 text-xl font-medium tracking-tight [--fit-max:var(--text-xl)] sm:text-2xl sm:[--fit-max:var(--text-2xl)]">
+          <FittedMoney cents={netCents} />
+        </p>
         <p className="tabular mt-1 text-xs">
           <span className={tone}>
             {change > 0 ? "▲" : change < 0 ? "▼" : ""} <Money cents={Math.abs(change)} /> ({share.toFixed(1)}%)
@@ -116,9 +118,9 @@ function Meter({
   const ratio = previousCents > 0 ? Math.max(cents, 0) / previousCents : cents > 0 ? 1 : 0;
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-2">
         <span className="text-sm">{label}</span>
-        <span className="tabular flex min-w-0 flex-wrap items-baseline justify-end gap-x-1 text-sm">
+        <span className="tabular ml-auto flex flex-wrap items-baseline justify-end gap-x-1 text-sm">
           <Money cents={cents} />
           <span className="label hidden whitespace-nowrap sm:inline">
             / <Money cents={previousCents} /> in {previousLabel}

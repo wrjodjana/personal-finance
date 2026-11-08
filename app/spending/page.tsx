@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CategoryPie, type PieSlice } from "@/components/CategoryPie";
 import { MerchantAvatar } from "@/components/MerchantAvatar";
-import { Money } from "@/components/MoneyProvider";
+import { FittedMoney, Money } from "@/components/MoneyProvider";
 import { MonthPicker } from "@/components/MonthPicker";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
 import { SetupNotice } from "@/components/SetupNotice";
@@ -30,9 +30,9 @@ function topMerchants(entries: LedgerEntry[]) {
 
 function Stat({ label, value, note }: { label: string; value: React.ReactNode; note?: React.ReactNode }) {
   return (
-    <div className="card px-4 py-3.5">
+    <div className="card @container px-4 py-3.5">
       <p className="label">{label}</p>
-      <p className="tabular mt-1 text-2xl font-medium tracking-tight">{value}</p>
+      <p className="tabular mt-1 text-2xl font-medium tracking-tight [--fit-max:var(--text-2xl)]">{value}</p>
       {note && <div className="mt-1 text-xs text-muted">{note}</div>}
     </div>
   );
@@ -146,7 +146,7 @@ export default async function SpendingPage({
       <div className="grid gap-3 sm:grid-cols-3">
         <Stat
           label="Spent"
-          value={<Money cents={summary.totalCents} />}
+          value={<FittedMoney cents={summary.totalCents} />}
           note={
             previous.totalCents !== 0 ? (
               <span>
@@ -163,7 +163,7 @@ export default async function SpendingPage({
         />
         <Stat
           label="Daily average"
-          value={<Money cents={dailyCents} />}
+          value={<FittedMoney cents={dailyCents} />}
           note={`Over ${daysCounted} ${daysCounted === 1 ? "day" : "days"}${isCurrent ? " so far" : ""}`}
         />
         <Stat
@@ -197,7 +197,7 @@ export default async function SpendingPage({
                   <li key={item.category}>
                     <Link
                       href={`/transactions?month=${month}&category=${item.category}`}
-                      className="grid grid-cols-[minmax(0,1fr)_5rem_2.75rem] items-center gap-x-3 px-5 py-2.5 transition sm:grid-cols-[minmax(0,1fr)_6.5rem_3.5rem] sm:gap-x-4 hover:bg-surface"
+                      className="grid grid-cols-[minmax(0,1fr)_minmax(5rem,auto)_2.75rem] items-center gap-x-3 px-5 py-2.5 transition sm:grid-cols-[minmax(0,1fr)_minmax(6.5rem,auto)_3.5rem] sm:gap-x-4 hover:bg-surface"
                     >
                       <div className="flex min-w-0 items-center gap-2.5">
                         <span className="size-2.5 shrink-0 rounded-full" style={{ background: meta.color }} />

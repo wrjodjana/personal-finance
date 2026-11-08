@@ -21,3 +21,17 @@ export function useFormatMoney(): (cents: number) => string {
 export function Money({ cents }: { cents: number }) {
   return formatMoney(cents, useMoney());
 }
+
+const CHAR_WIDTH_EM = 0.5;
+
+export function FittedMoney({ cents }: { cents: number }) {
+  const text = formatMoney(cents, useMoney());
+  return (
+    <span
+      className="block whitespace-nowrap"
+      style={{ fontSize: `min(var(--fit-max), calc(100cqw / ${text.length * CHAR_WIDTH_EM}))` }}
+    >
+      {text}
+    </span>
+  );
+}
