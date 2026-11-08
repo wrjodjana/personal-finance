@@ -122,3 +122,97 @@ body {
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+
+@utility tab-glide {
+  transition: translate 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@utility tab-press {
+  transition: scale 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+
+  :active > & {
+    scale: 0.88;
+  }
+
+  @variant md {
+    :active > & {
+      scale: 1;
+    }
+  }
+}
+
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-group(tab-bar) {
+  animation: none;
+  z-index: 100;
+}
+
+::view-transition-old(tab-bar) {
+  display: none;
+}
+
+::view-transition-new(tab-bar) {
+  animation: none;
+}
+
+::view-transition-old(.tab-forward),
+::view-transition-old(.tab-back) {
+  animation: 0.14s ease-in both tab-fade reverse, 0.36s cubic-bezier(0.32, 0.72, 0, 1) both tab-slide reverse;
+}
+
+::view-transition-new(.tab-forward),
+::view-transition-new(.tab-back) {
+  animation: 0.22s ease-out 0.08s both tab-fade, 0.36s cubic-bezier(0.32, 0.72, 0, 1) both tab-slide;
+}
+
+::view-transition-old(.tab-forward),
+::view-transition-new(.tab-back) {
+  --tab-offset: -32px;
+}
+
+::view-transition-new(.tab-forward),
+::view-transition-old(.tab-back) {
+  --tab-offset: 32px;
+}
+
+@media (width >= 48rem) {
+  ::view-transition-old(.tab-forward),
+  ::view-transition-old(.tab-back),
+  ::view-transition-new(.tab-forward),
+  ::view-transition-new(.tab-back) {
+    --tab-offset: 0px;
+  }
+}
+
+@keyframes tab-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes tab-slide {
+  from {
+    translate: var(--tab-offset);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-glide {
+    transition: none;
+  }
+
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}

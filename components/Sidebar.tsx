@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 const ICONS = {
   home: (
@@ -37,27 +38,58 @@ const LINKS = [
   { href: "/accounts", label: "Accounts", icon: ICONS.accounts },
 ];
 
+function linkIndex(path: string) {
+  return LINKS.findIndex((link) => (link.href === "/" ? path === "/" : path.startsWith(link.href)));
+}
+
 export function Sidebar({ footer }: { footer: React.ReactNode }) {
   const pathname = usePathname();
+  const [pending, setPending] = useState<{ from: string; to: string } | null>(null);
+  const shownPath = pending && pending.from === pathname ? pending.to : pathname;
+  const activeIndex = linkIndex(shownPath);
+  const currentIndex = linkIndex(pathname);
 
   return (
-    <aside className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line/60 bg-canvas/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:sticky md:top-0 md:bottom-auto md:z-10 md:h-screen md:w-52 md:shrink-0 md:flex-col md:border-t-0 md:border-r md:bg-surface/40 md:px-3 md:py-4">
-      <nav className="flex flex-[6] md:flex-none md:flex-col md:gap-0.5">
-        {LINKS.map((link) => {
-          const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+    <aside
+      style={{ viewTransitionName: "tab-bar" }}
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line/60 bg-canvas/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:sticky md:top-0 md:bottom-auto md:z-10 md:h-screen md:w-52 md:shrink-0 md:flex-col md:border-t-0 md:border-r md:bg-surface/40 md:px-3 md:py-4"
+    >
+      <nav className="relative flex flex-[6] md:flex-none md:flex-col md:gap-0.5">
+        {activeIndex >= 0 && (
+          <span
+            aria-hidden
+            className="tab-glide pointer-events-none absolute inset-y-0 left-0 flex w-1/6 items-center justify-center md:hidden"
+            style={{ translate: `${activeIndex * 100}% 0` }}
+          >
+            <span className="h-9 w-14 rounded-full bg-line/70" />
+          </span>
+        )}
+        {LINKS.map((link, index) => {
+          const active = index === activeIndex;
           return (
             <Link
               key={link.href}
               href={link.href}
               aria-current={active ? "page" : undefined}
               aria-label={link.label}
-              className={`flex flex-1 justify-center py-3.5 transition-colors md:flex-none md:items-center md:justify-start md:gap-2 md:rounded-lg md:border md:px-3 md:py-1.5 md:text-sm ${
+              transitionTypes={
+                currentIndex < 0 || index === currentIndex ? undefined : [index > currentIndex ? "tab-forward" : "tab-back"]
+              }
+              onNavigate={() => setPending({ from: pathname, to: link.href })}
+              className={`group relative flex flex-1 justify-center py-3.5 transition-colors md:flex-none md:items-center md:justify-start md:gap-2 md:rounded-lg md:border md:px-3 md:py-1.5 md:text-sm ${
                 active
                   ? "font-medium text-ink md:control"
                   : "text-muted hover:text-ink md:border-transparent md:hover:bg-line/40"
               }`}
             >
-              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="size-5 shrink-0" aria-hidden>
+              <svg
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                className="tab-press size-5 shrink-0"
+                aria-hidden
+              >
                 {link.icon}
               </svg>
               <span className="hidden md:inline">{link.label}</span>
