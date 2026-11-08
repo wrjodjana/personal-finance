@@ -129,7 +129,7 @@ export function HintBody({ title, text, children }: { title?: string; text: stri
   );
 }
 
-export function HintRow({ label, value, tone }: { label: string; value: string; tone?: string }) {
+export function HintRow({ label, value, tone }: { label: string; value: React.ReactNode; tone?: string }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <span className="min-w-0 truncate text-muted">{label}</span>

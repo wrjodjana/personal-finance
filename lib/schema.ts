@@ -142,3 +142,15 @@ export const investmentTransactions = sqliteTable(
   },
   (table) => [index("investment_transactions_date_idx").on(table.date)],
 );
+
+export const settings = sqliteTable("settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+});
+
+export const exchangeRates = sqliteTable("exchange_rates", {
+  currency: text("currency").primaryKey(),
+  rate: real("rate").notNull(),
+  rateDate: text("rate_date").notNull(),
+  fetchedAt: text("fetched_at").notNull(),
+});

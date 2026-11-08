@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { InstitutionLogo } from "@/components/InstitutionLogo";
 import { MerchantAvatar } from "@/components/MerchantAvatar";
+import { Money } from "@/components/MoneyProvider";
 import { RestoreButton } from "@/components/RestoreButton";
 import { SetupNotice } from "@/components/SetupNotice";
 import { loadTrash } from "@/lib/ledger";
-import { formatCents, formatDay } from "@/lib/months";
+import { formatDay } from "@/lib/months";
 import { plaidConfigured } from "@/lib/plaid";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,7 @@ export default async function TrashPage() {
                   </div>
                   <span className={`tabular whitespace-nowrap text-right text-sm ${moneyIn ? "text-positive" : ""}`}>
                     {moneyIn ? "+" : ""}
-                    {formatCents(Math.abs(entry.amountCents))}
+                    <Money cents={Math.abs(entry.amountCents)} />
                   </span>
                   <RestoreButton transactionId={entry.id} merchant={entry.merchant} />
                 </li>

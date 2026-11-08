@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CategoryPicker } from "@/components/CategoryPicker";
+import { useMoney } from "@/components/MoneyProvider";
 import { categoryPillStyle } from "@/lib/categories";
+import { formatAmount } from "@/lib/currency";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 export type ChartRow = {
@@ -19,14 +21,12 @@ export type ChartSeries = { key: string; label: string; color: string };
 
 const stackTop = (row: ChartRow, series: ChartSeries[]) => series.reduce((sum, item) => sum + (row.values[item.key] ?? 0), 0);
 
-const dollars = (value: number) =>
-  value.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-function compact(value: number): string {
-  const sign = value < 0 ? "-" : "";
-  const size = Math.abs(value);
-  if (size >= 1000) return `${sign}$${Number((size / 1000).toFixed(size >= 10000 ? 0 : 1))}k`;
-  return `${sign}$${Math.round(size)}`;
+function scaleRow(row: ChartRow, rate: number): ChartRow {
+  return {
+    ...row,
+    total: row.total * rate,
+    values: Object.fromEntries(Object.entries(row.values).map(([key, value]) => [key, value * rate])),
+  };
 }
 
 function niceStep(rough: number): number {
@@ -48,6 +48,8 @@ function axis(rows: ChartRow[], series: ChartSeries[]) {
 type TooltipProps = { active?: boolean; payload?: { payload: ChartRow }[]; series: ChartSeries[]; filtered: boolean };
 
 function ChartTooltip({ active, payload, series, filtered }: TooltipProps) {
+  const { code } = useMoney();
+  const dollars = (value: number) => formatAmount(value, code);
   const row = payload?.[0]?.payload;
   if (!active || !row) return null;
   if (filtered) {
@@ -80,11 +82,15 @@ function ChartTooltip({ active, payload, series, filtered }: TooltipProps) {
   );
 }
 
-export function SpendingChart({ rows, series }: { rows: ChartRow[]; series: ChartSeries[] }) {
+export function SpendingChart({ rows: baseRows, series }: { rows: ChartRow[]; series: ChartSeries[] }) {
   const router = useRouter();
+  const money = useMoney();
+  const rows = baseRows.map((row) => scaleRow(row, money.rate));
+  const compact = (value: number) => formatAmount(value, money.code, { compact: true });
   const [category, setCategory] = useState<string | null>(null);
   const visible = category ? series.filter((item) => item.key === category) : series;
   const { ticks, domain } = axis(rows, visible);
+  const axisWidth = Math.max(36, ...ticks.map((tick) => compact(tick).length * 7 + 10));
   const stacks = new Map(
     rows.map((row) => [
       row.month,
@@ -144,7 +150,7 @@ export function SpendingChart({ rows, series }: { rows: ChartRow[]; series: Char
             <YAxis
               tickLine={false}
               axisLine={false}
-              width={44}
+              width={axisWidth}
               tick={{ fontSize: 11, fill: "oklch(0.6 0.005 70)" }}
               tickFormatter={compact}
               ticks={ticks}

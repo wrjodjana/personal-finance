@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CategoryPie, type PieSlice } from "@/components/CategoryPie";
 import { MerchantAvatar } from "@/components/MerchantAvatar";
+import { Money } from "@/components/MoneyProvider";
 import { MonthPicker } from "@/components/MonthPicker";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
 import { SetupNotice } from "@/components/SetupNotice";
@@ -8,7 +9,7 @@ import { SpendingChart, type ChartRow, type ChartSeries } from "@/components/Spe
 import { categoryMeta } from "@/lib/categories";
 import { getDb } from "@/lib/db";
 import { availableMonths, inMonths, loadActiveEntries, monthRange, rankCategories, summarize, type LedgerEntry } from "@/lib/ledger";
-import { addMonths, currentMonth, daysInMonth, formatCents, formatDate, monthLabel, parseMonth, today } from "@/lib/months";
+import { addMonths, currentMonth, daysInMonth, formatDate, monthLabel, parseMonth, today } from "@/lib/months";
 import { plaidConfigured } from "@/lib/plaid";
 import { items } from "@/lib/schema";
 
@@ -27,7 +28,7 @@ function topMerchants(entries: LedgerEntry[]) {
   return [...byMerchant.values()].sort((a, b) => b.count - a.count || b.cents - a.cents).slice(0, 5);
 }
 
-function Stat({ label, value, note }: { label: string; value: string; note?: React.ReactNode }) {
+function Stat({ label, value, note }: { label: string; value: React.ReactNode; note?: React.ReactNode }) {
   return (
     <div className="card px-4 py-3.5">
       <p className="label">{label}</p>
@@ -145,12 +146,12 @@ export default async function SpendingPage({
       <div className="grid gap-3 sm:grid-cols-3">
         <Stat
           label="Spent"
-          value={formatCents(summary.totalCents)}
+          value={<Money cents={summary.totalCents} />}
           note={
             previous.totalCents !== 0 ? (
               <span>
                 <span className={delta > 0 ? "text-negative" : "text-positive"}>
-                  {delta > 0 ? "▲" : "▼"} {formatCents(Math.abs(delta))}
+                  {delta > 0 ? "▲" : "▼"} <Money cents={Math.abs(delta)} />
                   {deltaShare !== null && ` (${deltaShare.toFixed(1)}%)`}
                 </span>{" "}
                 vs {monthLabel(previousMonth, "medium").split(" ")[0]}
@@ -162,7 +163,7 @@ export default async function SpendingPage({
         />
         <Stat
           label="Daily average"
-          value={formatCents(dailyCents)}
+          value={<Money cents={dailyCents} />}
           note={`Over ${daysCounted} ${daysCounted === 1 ? "day" : "days"}${isCurrent ? " so far" : ""}`}
         />
         <Stat
@@ -207,7 +208,7 @@ export default async function SpendingPage({
                         className={`tabular whitespace-nowrap text-right text-sm font-medium ${refund ? "text-positive" : ""}`}
                       >
                         {refund ? "+" : ""}
-                        {formatCents(Math.abs(item.cents))}
+                        <Money cents={Math.abs(item.cents)} />
                       </span>
                       <span className={`tabular whitespace-nowrap text-right text-xs ${refund ? "text-positive" : "text-muted"}`}>
                         {refund ? "Refund" : `${share.toFixed(1)}%`}
@@ -248,7 +249,7 @@ export default async function SpendingPage({
                       {merchant.count} {merchant.count === 1 ? "purchase" : "purchases"}
                     </p>
                   </div>
-                  <span className="tabular text-sm font-medium">{formatCents(merchant.cents)}</span>
+                  <span className="tabular text-sm font-medium"><Money cents={merchant.cents} /></span>
                 </li>
               ))}
             </ul>
@@ -270,7 +271,7 @@ export default async function SpendingPage({
                       {formatDate(entry.date)} · {categoryMeta(entry.category).label}
                     </p>
                   </div>
-                  <span className="tabular text-sm font-medium">{formatCents(entry.amountCents)}</span>
+                  <span className="tabular text-sm font-medium"><Money cents={entry.amountCents} /></span>
                 </li>
               ))}
             </ul>

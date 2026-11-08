@@ -3,7 +3,9 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { InstitutionLogo } from "@/components/InstitutionLogo";
+import { useMoney } from "@/components/MoneyProvider";
 import { categoryPillStyle } from "@/lib/categories";
+import { fractionDigits, fromInputValue, moneySymbol, toInputValue, type Money } from "@/lib/currency";
 import {
   activeFilterCount,
   defaultAscending,
@@ -46,14 +48,14 @@ function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
-function dollars(cents: number | null): string {
-  return cents === null ? "" : String(cents / 100);
+function dollars(cents: number | null, money: Money): string {
+  return cents === null ? "" : String(Number(toInputValue(cents, money)));
 }
 
-function parseCents(value: string): number | null {
+function parseCents(value: string, money: Money): number | null {
   if (!value.trim()) return null;
   const amount = Number(value);
-  return Number.isFinite(amount) && amount >= 0 ? Math.round(amount * 100) : null;
+  return Number.isFinite(amount) && amount >= 0 ? fromInputValue(amount, money) : null;
 }
 
 function Segmented<T extends string | boolean>({
@@ -141,14 +143,15 @@ export function TransactionFilters({ filters, categories, accounts }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const money = useMoney();
   const [, startTransition] = useTransition();
   const [current, setCurrent] = useOptimistic(filters);
   const [text, setText] = useState(filters.query);
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>("categories");
   const [find, setFind] = useState("");
-  const [min, setMin] = useState(dollars(filters.minCents));
-  const [max, setMax] = useState(dollars(filters.maxCents));
+  const [min, setMin] = useState(dollars(filters.minCents, money));
+  const [max, setMax] = useState(dollars(filters.maxCents, money));
   const root = useRef<HTMLDivElement>(null);
 
   function apply(changes: Partial<Filters>) {
@@ -166,8 +169,8 @@ export function TransactionFilters({ filters, categories, accounts }: Props) {
   });
 
   useEffect(() => {
-    const minCents = parseCents(min);
-    const maxCents = parseCents(max);
+    const minCents = parseCents(min, money);
+    const maxCents = parseCents(max, money);
     if (minCents === current.minCents && maxCents === current.maxCents) return;
     const timer = setTimeout(() => apply({ minCents, maxCents }), 400);
     return () => clearTimeout(timer);
@@ -383,12 +386,12 @@ export function TransactionFilters({ filters, categories, accounts }: Props) {
                     <label key={field.label} className="block space-y-1.5">
                       <span className="label">{field.label}</span>
                       <span className="control flex h-10 items-center gap-1 px-3 focus-within:ring-2 focus-within:ring-line">
-                        <span className="text-sm text-faint">$</span>
+                        <span className="text-sm text-faint">{moneySymbol(money)}</span>
                         <input
                           type="number"
                           inputMode="decimal"
                           min="0"
-                          step="0.01"
+                          step={10 ** -fractionDigits(money)}
                           placeholder="Any"
                           value={field.value}
                           onChange={(event) => field.set(event.target.value)}

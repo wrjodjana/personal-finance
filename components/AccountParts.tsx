@@ -1,5 +1,5 @@
 import { InstitutionLogo } from "@/components/InstitutionLogo";
-import { formatCents } from "@/lib/months";
+import { Money } from "@/components/MoneyProvider";
 import type { Holding } from "@/lib/netWorth";
 
 export function Icon({ children, className = "size-4" }: { children: React.ReactNode; className?: string }) {
@@ -27,7 +27,7 @@ function Line({ label, cents }: { label: string; cents: number }) {
   return (
     <div className="flex justify-between gap-3 text-xs">
       <span className="text-muted">{label}</span>
-      <span className="tabular">{formatCents(cents)}</span>
+      <span className="tabular"><Money cents={cents} /></span>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MerchantAvatar } from "@/components/MerchantAvatar";
+import { useFormatMoney } from "@/components/MoneyProvider";
 import { Select } from "@/components/Select";
 import { SecurityLogo } from "@/components/SecurityLogo";
 
@@ -28,9 +29,6 @@ const GROUP_LABELS: Record<GroupBy, string> = {
 };
 
 const COLUMNS = "grid grid-cols-[minmax(0,1fr)_5.5rem_1rem] sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_5.5rem_4.5rem_1rem] items-center gap-x-4";
-
-const dollars = (cents: number) =>
-  (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function percentText(value: number): string {
   const size = Math.abs(value);
@@ -66,6 +64,7 @@ function ShareBar({ share }: { share: number }) {
 }
 
 function GainCells({ rows }: { rows: HoldingRow[] }) {
+  const dollars = useFormatMoney();
   const gain = gainOf(rows);
   if (!gain) {
     return (
@@ -122,6 +121,7 @@ function Detail({ label, value }: { label: string; value: string }) {
 }
 
 export function HoldingsList({ rows, totalCents }: { rows: HoldingRow[]; totalCents: number }) {
+  const dollars = useFormatMoney();
   const [query, setQuery] = useState("");
   const [groupBy, setGroupBy] = useState<GroupBy>("class");
   const [open, setOpen] = useState<string | null>(null);

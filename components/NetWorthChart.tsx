@@ -2,6 +2,8 @@
 
 import { useId, useState } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
+import { useMoney } from "@/components/MoneyProvider";
+import { formatMoney, moneyParts } from "@/lib/currency";
 import type { HistoryPoint } from "@/lib/netWorth";
 
 const RANGES = [
@@ -17,10 +19,6 @@ type RangeKey = (typeof RANGES)[number]["key"];
 
 const POSITIVE = "oklch(0.55 0.13 155)";
 const NEGATIVE = "oklch(0.55 0.19 25)";
-
-function dollars(cents: number): string {
-  return (Math.abs(cents) / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 function dayLabel(date: string): string {
   const [year, month, day] = date.split("-").map(Number);
@@ -48,6 +46,7 @@ function slice(points: HistoryPoint[], range: (typeof RANGES)[number]): HistoryP
 }
 
 export function NetWorthChart({ points, title = "Net Worth" }: { points: HistoryPoint[]; title?: string }) {
+  const money = useMoney();
   const gradientId = useId();
   const [rangeKey, setRangeKey] = useState<RangeKey>("1M");
   const [hover, setHover] = useState<HistoryPoint | null>(null);
@@ -70,12 +69,13 @@ export function NetWorthChart({ points, title = "Net Worth" }: { points: History
         <p className="label">{hover ? dayLabel(hover.date) : title}</p>
         <p className="tabular mt-1 text-4xl font-medium tracking-tight">
           {shown.cents < 0 && "-"}
-          <span className="mr-0.5 align-[0.6em] text-lg">$</span>
-          {dollars(shown.cents)}
+          <span className="mr-0.5 align-[0.6em] text-lg">{moneyParts(shown.cents, money).symbol}</span>
+          {moneyParts(shown.cents, money).number}
         </p>
         <p className="tabular mt-1.5 text-sm text-muted">
           <span className={change > 0 ? "text-positive" : change < 0 ? "text-negative" : undefined}>
-            {change < 0 ? "-" : change > 0 ? "+" : ""}${dollars(change)} ({Math.abs(share).toFixed(change === 0 ? 0 : 1)}%)
+            {change < 0 ? "-" : change > 0 ? "+" : ""}
+            {formatMoney(Math.abs(change), money)} ({Math.abs(share).toFixed(change === 0 ? 0 : 1)}%)
           </span>{" "}
           {hover ? `since ${dayLabel(first.date)}` : range.label}
         </p>

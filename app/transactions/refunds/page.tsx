@@ -2,9 +2,10 @@ import Link from "next/link";
 import { IncludeRefundButton } from "@/components/IncludeRefundButton";
 import { InstitutionLogo } from "@/components/InstitutionLogo";
 import { MerchantAvatar } from "@/components/MerchantAvatar";
+import { Money } from "@/components/MoneyProvider";
 import { SetupNotice } from "@/components/SetupNotice";
 import { loadRefunds, type RefundPair } from "@/lib/ledger";
-import { formatCents, formatDate, monthLabel } from "@/lib/months";
+import { formatDate, monthLabel } from "@/lib/months";
 import { plaidConfigured } from "@/lib/plaid";
 
 export const dynamic = "force-dynamic";
@@ -81,7 +82,7 @@ export default async function RefundsPage() {
                       <span className="truncate text-xs text-muted">{purchase.account.name}</span>
                       {purchase.account.mask && <span className="tabular shrink-0 text-xs text-faint">{purchase.account.mask}</span>}
                     </div>
-                    <span className="tabular whitespace-nowrap text-right text-sm">{formatCents(purchase.amountCents)}</span>
+                    <span className="tabular whitespace-nowrap text-right text-sm"><Money cents={purchase.amountCents} /></span>
                     <IncludeRefundButton transactionIds={[purchase.id, refund.id]} merchant={purchase.merchant} />
                   </li>
                 ))}

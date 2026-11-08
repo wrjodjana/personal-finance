@@ -2,8 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useMoney } from "@/components/MoneyProvider";
 import { Select, SELECT_TRIGGER } from "@/components/Select";
 import { categoryMeta } from "@/lib/categories";
+import { fractionDigits, fromInputValue, moneySymbol, toInputValue } from "@/lib/currency";
 
 type Option = { value: string; label: string };
 
@@ -165,10 +167,6 @@ export function RowMenu(props: Props) {
   );
 }
 
-function toDollars(cents: number): string {
-  return (Math.abs(cents) / 100).toFixed(2);
-}
-
 function EditDialog({
   transactionId,
   merchant,
@@ -182,9 +180,11 @@ function EditDialog({
   onSaved,
 }: Props & { onDone: () => void; onSaved: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const money = useMoney();
+  const initialAmount = toInputValue(Math.abs(amountCents), money);
   const [name, setName] = useState(merchant);
   const [day, setDay] = useState(date);
-  const [amount, setAmount] = useState(toDollars(amountCents));
+  const [amount, setAmount] = useState(initialAmount);
   const [direction, setDirection] = useState(amountCents < 0 ? "in" : "out");
   const [pick, setPick] = useState(category);
   const [error, setError] = useState<string | null>(null);
@@ -205,7 +205,8 @@ function EditDialog({
       setError("Enter a valid amount");
       return;
     }
-    const cents = Math.round(dollars * 100) * (direction === "in" ? -1 : 1);
+    const size = amount === initialAmount ? Math.abs(amountCents) : fromInputValue(dollars, money);
+    const cents = size * (direction === "in" ? -1 : 1);
     setBusy(true);
     setError(null);
     const response = await post("/api/edits", { transactionId, name, date: day, amountCents: cents });
@@ -273,12 +274,12 @@ function EditDialog({
           <label className="block space-y-1.5">
             <span className="label">Amount</span>
             <span className="control flex h-10 items-center gap-1 px-3 focus-within:ring-2 focus-within:ring-line">
-              <span className="text-sm text-faint">$</span>
+              <span className="text-sm text-faint">{moneySymbol(money)}</span>
               <input
                 type="number"
                 inputMode="decimal"
                 min="0"
-                step="0.01"
+                step={10 ** -fractionDigits(money)}
                 className="tabular w-full bg-transparent text-sm focus:outline-none"
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}

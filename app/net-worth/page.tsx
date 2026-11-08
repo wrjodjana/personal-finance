@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { AccountItem, AccountLogo, AccountName, Icon } from "@/components/AccountParts";
 import { HintBody, HintRow, InfoHint } from "@/components/InfoHint";
+import { Money } from "@/components/MoneyProvider";
 import { NetWorthBreakdown, type BreakdownSlice } from "@/components/NetWorthBreakdown";
 import { NetWorthChart } from "@/components/NetWorthChart";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
 import { SetupNotice } from "@/components/SetupNotice";
-import { formatCents } from "@/lib/months";
 import { groupHoldings, loadHistory, loadHoldings } from "@/lib/netWorth";
 import { plaidConfigured } from "@/lib/plaid";
 
@@ -19,7 +19,7 @@ const GROUP_ICONS: Record<string, React.ReactNode> = {
   loan: <path d="M4 16.5h12M5.5 16.5v-6m3 6v-6m3 6v-6m3 6v-6M3.5 8.5 10 4l6.5 4.5z" strokeLinecap="round" strokeLinejoin="round" />,
 };
 
-function Metric({ label, value, info, tone, icon }: { label: string; value: string; info: React.ReactNode; tone: string; icon: React.ReactNode }) {
+function Metric({ label, value, info, tone, icon }: { label: string; value: React.ReactNode; info: React.ReactNode; tone: string; icon: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3">
       <span className={`grid size-8 shrink-0 place-items-center rounded-lg border ${tone}`}>
@@ -121,7 +121,7 @@ export default async function NetWorthPage() {
                   <Icon className="size-4 text-muted">{GROUP_ICONS[group.type]}</Icon>
                   {group.label}
                 </h2>
-                <span className="tabular text-sm font-medium">{formatCents(group.totalCents)}</span>
+                <span className="tabular text-sm font-medium"><Money cents={group.totalCents} /></span>
               </div>
               <div className="py-1.5">
                 {group.subtypes.map((subtype) => (
@@ -129,7 +129,7 @@ export default async function NetWorthPage() {
                     {group.subtypes.length > 1 && (
                       <div className="flex items-center justify-between px-5 pt-3 pb-1">
                         <span className="eyebrow">{subtype.label}</span>
-                        <span className="tabular label">{formatCents(subtype.totalCents)}</span>
+                        <span className="tabular label"><Money cents={subtype.totalCents} /></span>
                       </div>
                     )}
                     <ul>
@@ -139,7 +139,7 @@ export default async function NetWorthPage() {
                           <span className="min-w-0 flex-1">
                             <AccountName holding={holding} />
                           </span>
-                          <span className="tabular whitespace-nowrap font-medium">{formatCents(holding.cents)}</span>
+                          <span className="tabular whitespace-nowrap font-medium"><Money cents={holding.cents} /></span>
                         </AccountItem>
                       ))}
                     </ul>
@@ -154,7 +154,7 @@ export default async function NetWorthPage() {
           <section className="card grid grid-cols-2 gap-x-4 gap-y-5 px-5 py-5">
             <Metric
               label="Assets"
-              value={formatCents(assetCents)}
+              value={<Money cents={assetCents} />}
               info={
                 <HintBody
                   title="Total Assets"
@@ -164,7 +164,7 @@ export default async function NetWorthPage() {
                     {groups
                       .filter((group) => group.kind === "asset")
                       .map((group) => (
-                        <HintRow key={group.type} label={group.label} value={formatCents(group.totalCents)} />
+                        <HintRow key={group.type} label={group.label} value={<Money cents={group.totalCents} />} />
                       ))}
                   </div>
                 </HintBody>
@@ -174,14 +174,14 @@ export default async function NetWorthPage() {
             />
             <Metric
               label="Liabilities"
-              value={formatCents(liabilityCents)}
+              value={<Money cents={liabilityCents} />}
               info={
                 <HintBody title="Total Liabilities" text="Everything you owe: credit card balances, loans and other debts.">
                   <div className="space-y-1.5">
                     {groups
                       .filter((group) => group.kind === "liability")
                       .map((group) => (
-                        <HintRow key={group.type} label={group.label} value={formatCents(group.totalCents)} />
+                        <HintRow key={group.type} label={group.label} value={<Money cents={group.totalCents} />} />
                       ))}
                   </div>
                 </HintBody>
@@ -191,19 +191,19 @@ export default async function NetWorthPage() {
             />
             <Metric
               label="Net cash"
-              value={formatCents(cashCents - cardDebtCents)}
+              value={<Money cents={cashCents - cardDebtCents} />}
               info={
                 <HintBody
                   title="What is Net Cash?"
                   text="Your bank balances minus credit card debt. This is what you could spend today without going further into debt."
                 >
                   <div className="space-y-1.5">
-                    <HintRow label="Cash" value={formatCents(cashCents)} />
-                    <HintRow label="Credit cards" value={`-${formatCents(cardDebtCents)}`} tone="text-negative" />
+                    <HintRow label="Cash" value={<Money cents={cashCents} />} />
+                    <HintRow label="Credit cards" value={<Money cents={-cardDebtCents} />} tone="text-negative" />
                     <div className="border-t border-line pt-1.5">
                       <div className="flex items-center justify-between gap-4">
                         <span>Net Cash</span>
-                        <span className="tabular">{formatCents(cashCents - cardDebtCents)}</span>
+                        <span className="tabular"><Money cents={cashCents - cardDebtCents} /></span>
                       </div>
                     </div>
                   </div>
@@ -259,7 +259,7 @@ export default async function NetWorthPage() {
                     <span className={`text-sm font-medium ${grade.tone}`}>{grade.label}</span>
                   </p>
                   <p className="label tabular mt-1">
-                    {formatCents(usedCents)} of {formatCents(limitCents)} used · {limited.length} of {cards.length}{" "}
+                    <Money cents={usedCents} /> of <Money cents={limitCents} /> used · {limited.length} of {cards.length}{" "}
                     {cards.length === 1 ? "card" : "cards"}
                   </p>
                   <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-line/80">
@@ -277,7 +277,7 @@ export default async function NetWorthPage() {
                         <span className="min-w-0 flex-1">
                           <AccountName holding={card} />
                         </span>
-                        <span className="tabular">{formatCents(card.cents)}</span>
+                        <span className="tabular"><Money cents={card.cents} /></span>
                         <span className={`tabular w-9 text-right font-medium ${utilizationGrade(share).tone}`}>{percent(share)}</span>
                       </li>
                     ))}
@@ -301,7 +301,7 @@ export default async function NetWorthPage() {
                         <span className="min-w-0 flex-1">
                           <AccountName holding={card} />
                         </span>
-                        <span className="tabular">{formatCents(card.cents)}</span>
+                        <span className="tabular"><Money cents={card.cents} /></span>
                         <span className="text-faint">No limit</span>
                       </li>
                     ))}
@@ -321,7 +321,7 @@ export default async function NetWorthPage() {
                     <span className="min-w-0 flex-1">
                       <AccountName holding={holding} />
                     </span>
-                    <span className="tabular">{formatCents(holding.cents)}</span>
+                    <span className="tabular"><Money cents={holding.cents} /></span>
                   </AccountItem>
                 ))}
               </ul>

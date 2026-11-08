@@ -3,13 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
+import { useFormatMoney } from "@/components/MoneyProvider";
 
 export type PieSlice = { category: string; label: string; color: string; cents: number; href: string };
 
-const dollars = (cents: number) =>
-  (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
 export function CategoryPie({ slices }: { slices: PieSlice[] }) {
+  const dollars = useFormatMoney();
   const router = useRouter();
   const [active, setActive] = useState<number | null>(null);
   const total = slices.reduce((sum, slice) => sum + slice.cents, 0);

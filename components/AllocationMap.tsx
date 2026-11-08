@@ -1,6 +1,7 @@
 "use client";
 
 import { ResponsiveContainer, Treemap } from "recharts";
+import { useFormatMoney } from "@/components/MoneyProvider";
 
 export type AllocationItem = { label: string; cents: number };
 
@@ -19,9 +20,6 @@ export const LIABILITY_COLORS = [
   "oklch(0.6 0.08 340)",
   "oklch(0.64 0.06 10)",
 ];
-
-const dollars = (cents: number) =>
-  (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const shareText = (share: number) => (share > 0 && share < 0.1 ? "<0.1%" : `${share.toFixed(1)}%`);
 
@@ -58,6 +56,7 @@ function TileShape({ x, y, width, height, name, share, color, depth }: Partial<T
 }
 
 export function AllocationMap({ items, colors, empty }: { items: AllocationItem[]; colors: string[]; empty: string }) {
+  const dollars = useFormatMoney();
   const visible = items.filter((item) => item.cents > 0).sort((a, b) => b.cents - a.cents);
   const total = visible.reduce((sum, item) => sum + item.cents, 0);
   const data = visible.map((item, index) => ({

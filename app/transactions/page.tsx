@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CategoryCell } from "@/components/CategoryCell";
 import { InstitutionLogo } from "@/components/InstitutionLogo";
 import { MerchantAvatar } from "@/components/MerchantAvatar";
+import { Money } from "@/components/MoneyProvider";
 import { PendingIcon } from "@/components/PendingIcon";
 import { MonthPicker } from "@/components/MonthPicker";
 import { RowMenu } from "@/components/RowMenu";
@@ -10,6 +11,7 @@ import { SetupNotice } from "@/components/SetupNotice";
 import { TransactionFilters } from "@/components/TransactionFilters";
 import { CATEGORIES } from "@/lib/categories";
 import { institutionLogoUrl } from "@/lib/branding";
+import { formatMoney, type Money as MoneyValue } from "@/lib/currency";
 import { getDb } from "@/lib/db";
 import {
   accountLabel,
@@ -20,7 +22,8 @@ import {
   SPENDING_ACCOUNT_TYPES,
   type LedgerEntry,
 } from "@/lib/ledger";
-import { formatCents, formatDate, formatDay, monthLabel, parseMonth } from "@/lib/months";
+import { getMoney } from "@/lib/money";
+import { formatDate, formatDay, monthLabel, parseMonth } from "@/lib/months";
 import { plaidConfigured } from "@/lib/plaid";
 import { accounts, deletedTransactions, items } from "@/lib/schema";
 import { matchesFilters, parseFilters, sortEntries } from "@/lib/transactionFilters";
@@ -37,7 +40,17 @@ function EditedIcon() {
   );
 }
 
-function TransactionRow({ entry, options, showDate = false }: { entry: LedgerEntry; options: Option[]; showDate?: boolean }) {
+function TransactionRow({
+  entry,
+  options,
+  money,
+  showDate = false,
+}: {
+  entry: LedgerEntry;
+  options: Option[];
+  money: MoneyValue;
+  showDate?: boolean;
+}) {
   const moneyIn = entry.amountCents < 0;
   return (
     <li
@@ -55,7 +68,7 @@ function TransactionRow({ entry, options, showDate = false }: { entry: LedgerEnt
             {entry.edited && (
               <span
                 className="shrink-0 text-faint"
-                title={`Edited. Bank: ${entry.bank.name}, ${formatDate(entry.bank.date)}, ${entry.bank.amountCents < 0 ? "+" : ""}${formatCents(Math.abs(entry.bank.amountCents))}`}
+                title={`Edited. Bank: ${entry.bank.name}, ${formatDate(entry.bank.date)}, ${entry.bank.amountCents < 0 ? "+" : ""}${formatMoney(Math.abs(entry.bank.amountCents), money)}`}
               >
                 <EditedIcon />
               </span>
@@ -106,7 +119,7 @@ function TransactionRow({ entry, options, showDate = false }: { entry: LedgerEnt
           }`}
         >
           {moneyIn ? "+" : ""}
-          {formatCents(Math.abs(entry.amountCents))}
+          <Money cents={Math.abs(entry.amountCents)} />
         </span>
       </div>
       <div className="col-start-3 row-start-1 flex justify-end sm:col-start-auto sm:row-start-auto">
@@ -150,7 +163,7 @@ export default async function TransactionsPage({
   const params = await searchParams;
   const month = parseMonth(params.month);
   const filters = parseFilters(params);
-  const allEntries = await loadActiveEntries();
+  const [allEntries, money] = await Promise.all([loadActiveEntries(), getMoney()]);
   const entries = sortEntries(
     inMonths(allEntries, month, month).filter((entry) => matchesFilters(entry, filters)),
     filters,
@@ -236,7 +249,7 @@ export default async function TransactionsPage({
         <section className="card">
           <ul className="divide-y divide-line/60">
             {entries.map((entry) => (
-              <TransactionRow key={entry.id} entry={entry} options={categoryOptions} showDate />
+              <TransactionRow key={entry.id} entry={entry} options={categoryOptions} money={money} showDate />
             ))}
           </ul>
         </section>
@@ -250,13 +263,13 @@ export default async function TransactionsPage({
                   Net{" "}
                   <span className={`font-medium ${day.netCents > 0 ? "text-positive" : "text-ink"}`}>
                     {day.netCents > 0 ? "+" : ""}
-                    {formatCents(Math.abs(day.netCents))}
+                    <Money cents={Math.abs(day.netCents)} />
                   </span>
                 </p>
               </div>
               <ul className="divide-y divide-line/60">
                 {day.entries.map((entry) => (
-                  <TransactionRow key={entry.id} entry={entry} options={categoryOptions} />
+                  <TransactionRow key={entry.id} entry={entry} options={categoryOptions} money={money} />
                 ))}
               </ul>
             </section>

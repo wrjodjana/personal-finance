@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
-export type SelectOption = { value: string; label: string };
+export type SelectOption = { value: string; label: string; short?: string };
 
 type Props = {
   value: string;
@@ -12,6 +12,7 @@ type Props = {
   className?: string;
   chevron?: boolean;
   disabled?: boolean;
+  icon?: React.ReactNode;
 };
 
 const GAP = 8;
@@ -21,7 +22,7 @@ const MAX_HEIGHT = 288;
 export const SELECT_TRIGGER =
   "control flex h-10 cursor-pointer items-center justify-between gap-2 rounded-xl pr-2.5 pl-3.5 text-sm whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-line disabled:cursor-default disabled:opacity-50";
 
-export function Select({ value, options, onChange, label, className = SELECT_TRIGGER, chevron = true, disabled = false }: Props) {
+export function Select({ value, options, onChange, label, className = SELECT_TRIGGER, chevron = true, disabled = false, icon }: Props) {
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
@@ -139,7 +140,8 @@ export function Select({ value, options, onChange, label, className = SELECT_TRI
         onKeyDown={onTriggerKey}
         className={className}
       >
-        <span className="truncate">{selected?.label ?? ""}</span>
+        {icon}
+        <span className="truncate">{selected?.short ?? selected?.label ?? ""}</span>
         {chevron && (
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="size-5 shrink-0 text-muted" aria-hidden>
             <path d="M18 9s-4.42 6-6 6-6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />

@@ -3,12 +3,13 @@ import { AccountItem, AccountLogo, AccountName, Icon } from "@/components/Accoun
 import { AllocationMap, ASSET_COLORS } from "@/components/AllocationMap";
 import { HoldingsList, type HoldingRow } from "@/components/HoldingsList";
 import { MerchantAvatar } from "@/components/MerchantAvatar";
+import { Money } from "@/components/MoneyProvider";
 import { NetWorthChart } from "@/components/NetWorthChart";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
 import { SecurityLogo } from "@/components/SecurityLogo";
 import { SetupNotice } from "@/components/SetupNotice";
 import { getDb } from "@/lib/db";
-import { formatCents, formatDate } from "@/lib/months";
+import { formatDate } from "@/lib/months";
 import { loadHistory, loadHoldings } from "@/lib/netWorth";
 import { plaidConfigured } from "@/lib/plaid";
 import { assetClassLabel, loadPortfolio, typeLabel } from "@/lib/portfolio";
@@ -57,7 +58,7 @@ function ActivityRow({ entry, compact, equities }: { entry: Activity; compact: b
       </div>
       <span className={`tabular whitespace-nowrap ${compact ? "text-xs" : "text-sm font-medium"} ${credit ? "text-positive" : ""}`}>
         {credit ? "+" : ""}
-        {formatCents(Math.abs(entry.amountCents))}
+        <Money cents={Math.abs(entry.amountCents)} />
       </span>
     </li>
   );
@@ -179,7 +180,7 @@ export default async function InvestmentsPage({
                   <span className="min-w-0 flex-1">
                     <AccountName holding={account} />
                   </span>
-                  <span className="tabular">{formatCents(account.cents)}</span>
+                  <span className="tabular"><Money cents={account.cents} /></span>
                 </AccountItem>
               ))}
             </ul>
@@ -194,7 +195,7 @@ export default async function InvestmentsPage({
                     <Icon className="size-3.5">{row.icon}</Icon>
                   </span>
                   <dt className="flex-1">{row.label}</dt>
-                  <dd className="tabular">{formatCents(portfolio.yearToDate[row.key])}</dd>
+                  <dd className="tabular"><Money cents={portfolio.yearToDate[row.key]} /></dd>
                 </div>
               ))}
             </dl>

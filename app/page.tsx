@@ -1,12 +1,14 @@
 import Link from "next/link";
+import { CurrencySwitch } from "@/components/CurrencySwitch";
 import { MerchantAvatar } from "@/components/MerchantAvatar";
+import { Money } from "@/components/MoneyProvider";
 import { PendingIcon } from "@/components/PendingIcon";
 import { PlaidLinkButton } from "@/components/PlaidLinkButton";
 import { SetupNotice } from "@/components/SetupNotice";
 import { TodayLabel } from "@/components/TodayLabel";
 import { getDb } from "@/lib/db";
 import { loadActiveEntries, summarize, type LedgerEntry } from "@/lib/ledger";
-import { addMonths, currentMonth, daysBefore, formatCents, formatDate, monthLabel } from "@/lib/months";
+import { addMonths, currentMonth, daysBefore, formatDate, monthLabel } from "@/lib/months";
 import { loadHistory, loadHoldings, type HistoryPoint } from "@/lib/netWorth";
 import { plaidConfigured } from "@/lib/plaid";
 import { items } from "@/lib/schema";
@@ -72,10 +74,10 @@ async function NetWorthCard() {
     <Link href="/net-worth" className="card row-wash flex min-h-54 flex-col overflow-hidden">
       <div className="px-4 pt-4">
         <p className="label">Net Worth</p>
-        <p className="tabular mt-1 text-xl font-medium tracking-tight sm:text-2xl">{formatCents(netCents)}</p>
+        <p className="tabular mt-1 text-xl font-medium tracking-tight sm:text-2xl"><Money cents={netCents} /></p>
         <p className="tabular mt-1 text-xs">
           <span className={tone}>
-            {change > 0 ? "▲" : change < 0 ? "▼" : ""} {formatCents(Math.abs(change))} ({share.toFixed(1)}%)
+            {change > 0 ? "▲" : change < 0 ? "▼" : ""} <Money cents={Math.abs(change)} /> ({share.toFixed(1)}%)
           </span>{" "}
           <span className="text-faint">Past month</span>
         </p>
@@ -117,9 +119,9 @@ function Meter({
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-sm">{label}</span>
         <span className="tabular flex min-w-0 flex-wrap items-baseline justify-end gap-x-1 text-sm">
-          {formatCents(cents)}
+          <Money cents={cents} />
           <span className="label hidden whitespace-nowrap sm:inline">
-            / {formatCents(previousCents)} in {previousLabel}
+            / <Money cents={previousCents} /> in {previousLabel}
           </span>
         </span>
       </div>
@@ -194,7 +196,7 @@ function RecentCard({ entries }: { entries: LedgerEntry[] }) {
                   )}
                   <span className={`tabular whitespace-nowrap text-sm ${moneyIn ? "text-positive" : ""}`}>
                     {moneyIn ? "+" : ""}
-                    {formatCents(Math.abs(entry.amountCents))}
+                    <Money cents={Math.abs(entry.amountCents)} />
                   </span>
                 </span>
               </li>
@@ -229,9 +231,12 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8 md:pt-17.5">
-      <header>
+      <header className="flex items-center justify-between gap-3">
         <TodayLabel />
         <h1 className="sr-only">Home</h1>
+        <div className="md:hidden">
+          <CurrencySwitch variant="header" />
+        </div>
       </header>
 
       {broken.length > 0 && (
