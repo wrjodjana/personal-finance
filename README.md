@@ -7,7 +7,7 @@ It runs on your own free Cloudflare account, so you can open it from your phone 
 ## What you get
 
 - **Spending**: total spent in a month, change from the month before, a 12-month chart by category, and a list of categories.
-- **Transactions**: every transaction of a month, with filters for category and account. Change the category of a transaction, or make a rule such as "merchant contains Uber Eats → Food & drink".
+- **Transactions**: every transaction of a month, with filters for category and account. Change the category of a transaction.
 - **Accounts**: connect accounts with Plaid Link, see sync status, and fix a broken connection.
 
 Only spending counts. Income, transfers between your accounts and credit card payments are not in the totals. A refund cancels out its original purchase. Pending charges count.
@@ -34,47 +34,13 @@ Claude forks the repo, installs it and deploys it to your Cloudflare account. It
 - Paste your Plaid keys into a command. Your keys never go into the chat.
 - Open the app and connect your banks.
 
-## Deploy by hand
-
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/wrjodjana/personal-finance)
-
-Follow **[docs/deploy.md](docs/deploy.md)**. It has every step, with the Deploy button or from the command line. In short:
-
-1. Deploy the app and add your Plaid keys as secrets.
-2. Turn on Cloudflare Access for the Worker with the **Cloudflare account** policy.
-3. Add the Access **JWKS URL** as `TEAM_DOMAIN` and the **AUD tag** as `POLICY_AUD`.
-
 The app syncs every day at 12:00 UTC. **Sync now** syncs at any time.
 
-The app uses the `TIME_ZONE` variable (an IANA name, such as `America/New_York`) for "today" and "this month", and for the date of each saved balance. Set it in the Cloudflare dashboard, as [docs/deploy.md](docs/deploy.md#set-your-time-zone) shows. If it is not set, the app uses UTC.
+## How your data is kept safe
 
-`wrangler.jsonc` has nothing that is only for one person. Your database, time zone and domain stay in your Cloudflare account, so you can deploy your fork with no changes.
-
-
-### How your data is kept safe
-
-- Every request must carry a valid Cloudflare Access sign-in. The app checks it itself. Until `TEAM_DOMAIN` and `POLICY_AUD` are set, it shows no data.
+- Every request must carry a valid Cloudflare Access sign-in. The app checks it itself. Until sign-in is set up, it shows no data.
 - Your Plaid keys are Worker secrets. Your bank data is in your D1 database. Nothing goes to the people who made this app.
 
-### Cost
+## Cost
 
 Cloudflare Workers, D1 and Access are free at this size. If the app gets bigger than the 3 MiB free Worker limit, the Workers Paid plan costs $5 a month. Plaid charges you for each connected bank.
-
-## Run on your computer
-
-Requirements: Node.js 22.5 or later.
-
-```sh
-git clone <your copy of this repo>
-cd personal-finance
-npm install
-cp .env.example .env
-```
-
-Put your Plaid keys in `.env`, then start the app and open [http://127.0.0.1:3000](http://127.0.0.1:3000):
-
-```sh
-npm run dev
-```
-
-On your computer, the app uses a local D1 database in `.wrangler/` and has no sign-in.
