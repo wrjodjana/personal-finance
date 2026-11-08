@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#fefdfc",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -26,9 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
       </head>
       <body className="min-h-screen font-sans">
-        <div className="flex min-h-screen flex-col md:flex-row">
+        <div className="flex min-h-screen flex-col pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] md:flex-row">
           <Sidebar footer={configured ? <RefreshButton /> : null} />
-          <main className="min-w-0 flex-1 px-4 py-6 sm:px-8 md:py-10">
+          <main className="min-w-0 flex-1 px-4 pt-6 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:px-8 md:py-10">
             <div className="mx-auto max-w-4xl has-[.page-wide]:max-w-6xl">{children}</div>
           </main>
         </div>

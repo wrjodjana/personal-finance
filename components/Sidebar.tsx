@@ -41,8 +41,8 @@ export function Sidebar({ footer }: { footer: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <aside className="sticky top-0 z-10 flex shrink-0 items-center gap-2 border-b border-line/60 bg-canvas/90 px-3 py-2 backdrop-blur md:h-screen md:w-52 md:flex-col md:items-stretch md:gap-0 md:border-r md:border-b-0 md:bg-surface/40 md:px-3 md:py-4">
-      <nav className="flex gap-0.5 md:flex-col">
+    <aside className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line/60 bg-canvas/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:sticky md:top-0 md:bottom-auto md:z-10 md:h-screen md:w-52 md:shrink-0 md:flex-col md:border-t-0 md:border-r md:bg-surface/40 md:px-3 md:py-4">
+      <nav className="flex flex-[6] md:flex-none md:flex-col md:gap-0.5">
         {LINKS.map((link) => {
           const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
           return (
@@ -51,19 +51,21 @@ export function Sidebar({ footer }: { footer: React.ReactNode }) {
               href={link.href}
               aria-current={active ? "page" : undefined}
               aria-label={link.label}
-              className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                active ? "control font-medium text-ink" : "border border-transparent text-muted hover:bg-line/40 hover:text-ink"
+              className={`flex flex-1 justify-center py-3.5 transition-colors md:flex-none md:items-center md:justify-start md:gap-2 md:rounded-lg md:border md:px-3 md:py-1.5 md:text-sm ${
+                active
+                  ? "font-medium text-ink md:control"
+                  : "text-muted hover:text-ink md:border-transparent md:hover:bg-line/40"
               }`}
             >
               <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="size-5 shrink-0" aria-hidden>
                 {link.icon}
               </svg>
-              <span className="hidden sm:inline">{link.label}</span>
+              <span className="hidden md:inline">{link.label}</span>
             </Link>
           );
         })}
       </nav>
-      {footer && <div className="ml-auto md:mt-auto md:ml-0">{footer}</div>}
+      {footer && <div className="flex-1 md:mt-auto md:flex-none">{footer}</div>}
     </aside>
   );
 }
