@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Lexend } from "next/font/google";
 import { RefreshButton } from "@/components/RefreshButton";
 import { Sidebar } from "@/components/Sidebar";
@@ -10,12 +10,21 @@ const lexend = Lexend({ subsets: ["latin"], variable: "--font-lexend" });
 export const metadata: Metadata = {
   title: "Personal Finance",
   description: "Where your money goes, from your own Plaid connections.",
+  applicationName: "Finance",
+  appleWebApp: { capable: true, title: "Finance", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#fefdfc",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const configured = plaidConfigured();
   return (
     <html lang="en" className={lexend.variable}>
+      <head>
+        <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
+      </head>
       <body className="min-h-screen font-sans">
         <div className="flex min-h-screen flex-col md:flex-row">
           <Sidebar footer={configured ? <RefreshButton /> : null} />
