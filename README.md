@@ -18,7 +18,23 @@ Only spending counts. Income, transfers between your accounts and credit card pa
 - A Cloudflare account. The free plan is enough for one person.
 - A GitHub account.
 
-## Deploy
+## Deploy with Claude Code
+
+The easiest way. In an empty folder, start [Claude Code](https://claude.com/claude-code) and paste:
+
+```text
+Set up my own copy of https://github.com/wrjodjana/personal-finance. Fork it, clone it, then read .claude/skills/deploy/SKILL.md in the clone and follow it.
+```
+
+Claude forks the repo, installs it and deploys it to your Cloudflare account. It stops and tells you each time you must do something yourself:
+
+- Get Plaid **Production** keys. Plaid can take a few days to approve, so start this first.
+- Sign in to GitHub and Cloudflare in your terminal.
+- Choose a workers.dev subdomain and turn on sign-in in the Cloudflare dashboard.
+- Paste your Plaid keys into a command. Your keys never go into the chat.
+- Open the app and connect your banks.
+
+## Deploy by hand
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/wrjodjana/personal-finance)
 
@@ -34,7 +50,6 @@ The app uses the `TIME_ZONE` variable (an IANA name, such as `America/New_York`)
 
 `wrangler.jsonc` has nothing that is only for one person. Your database, time zone and domain stay in your Cloudflare account, so you can deploy your fork with no changes.
 
-If you use Claude Code, ask it to "deploy this to Cloudflare". The `deploy` skill in `.claude/skills/` takes you through the same steps.
 
 ### How your data is kept safe
 

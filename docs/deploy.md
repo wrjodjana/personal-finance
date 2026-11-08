@@ -2,6 +2,8 @@
 
 This guide puts the app on your own Cloudflare account. When you finish, you can open it from any device at `https://personal-finance.<your-subdomain>.workers.dev`, and only you can sign in.
 
+If you use Claude Code, it can do most of this for you. See [Deploy with Claude Code](../README.md#deploy-with-claude-code).
+
 It takes about 20 minutes. It costs $0 on Cloudflare's free plan. Plaid charges you for each connected bank.
 
 ## What you need
@@ -161,6 +163,8 @@ The app uses UTC for "today" and "this month" until you set your time zone.
 3. Click **Deploy**.
 
 Deploys keep this value, because `wrangler.jsonc` has `keep_vars: true`.
+
+From the command line, this does the same: `npx wrangler secret put TIME_ZONE`, then paste your time zone.
 
 ## Use your own domain (optional)
 
