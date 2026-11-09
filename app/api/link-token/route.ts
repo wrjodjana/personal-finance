@@ -7,7 +7,7 @@ import { plaid } from "@/lib/plaid";
 import { items } from "@/lib/schema";
 
 export async function POST(request: Request) {
-  const { itemId, addInvestments } = await readJson(request);
+  const { itemId, addInvestments, addAccounts } = await readJson(request);
   const base = {
     client_name: "Personal Finance",
     country_codes: [CountryCode.Us],
@@ -23,6 +23,7 @@ export async function POST(request: Request) {
         ...base,
         access_token: item.accessToken,
         additional_consented_products: addInvestments === true ? [Products.Investments] : undefined,
+        update: addAccounts === true ? { account_selection_enabled: true } : undefined,
       });
       return NextResponse.json({ linkToken: data.link_token });
     }

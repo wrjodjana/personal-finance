@@ -18,15 +18,16 @@ export async function POST(request: Request) {
     if (typeof institutionId === "string") {
       const newMasks = new Set(accountData.accounts.map((account) => account.mask).filter(Boolean));
       const sameBank = await db
-        .select({ mask: accounts.mask })
+        .select({ itemId: items.id, mask: accounts.mask })
         .from(items)
         .innerJoin(accounts, eq(accounts.itemId, items.id))
         .where(eq(items.institutionId, institutionId))
         .all();
-      if (sameBank.some((row) => row.mask && newMasks.has(row.mask))) {
+      const existing = sameBank.find((row) => row.mask && newMasks.has(row.mask));
+      if (existing) {
         await plaid().itemRemove({ access_token: exchange.access_token });
         return NextResponse.json(
-          { error: "These accounts are already connected. Use Fix on the Accounts page instead." },
+          { error: "These accounts are already connected", existingItemId: existing.itemId },
           { status: 409 },
         );
       }
