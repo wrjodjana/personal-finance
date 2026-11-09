@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { InstitutionLogo } from "@/components/InstitutionLogo";
 import { Money } from "@/components/MoneyProvider";
 import type { Holding } from "@/lib/netWorth";
@@ -44,11 +45,16 @@ export function AccountItem({
   const credit = holding.type === "credit" || holding.type === "loan";
   const limited = holding.limitCents !== null && holding.limitCents > 0;
   return (
-    <li tabIndex={0} className={`group/account row-wash relative outline-none ${className}`}>
-      {children}
+    <li className="group/account relative">
+      <Link
+        href={`/net-worth/${holding.id}`}
+        className={`row-wash outline-none focus-visible:bg-surface ${className}`}
+      >
+        {children}
+      </Link>
       <div
         role="tooltip"
-        className="popover pointer-events-none invisible absolute bottom-full left-0 z-30 mb-1 w-72 max-w-[calc(100vw-2rem)] origin-bottom-left scale-[0.96] p-4 opacity-0 transition-[opacity,scale,visibility] duration-100 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover/account:visible group-hover/account:scale-100 group-hover/account:opacity-100 group-hover/account:delay-300 group-hover/account:duration-150 group-focus-visible/account:visible group-focus-visible/account:scale-100 group-focus-visible/account:opacity-100 group-focus-visible/account:duration-150"
+        className="popover pointer-events-none invisible absolute bottom-full left-0 z-30 mb-1 w-72 max-w-[calc(100vw-2rem)] origin-bottom-left scale-[0.96] p-4 opacity-0 transition-[opacity,scale,visibility] duration-100 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover/account:visible group-hover/account:scale-100 group-hover/account:opacity-100 group-hover/account:delay-300 group-hover/account:duration-150 group-has-[a:focus-visible]/account:visible group-has-[a:focus-visible]/account:scale-100 group-has-[a:focus-visible]/account:opacity-100 group-has-[a:focus-visible]/account:duration-150"
       >
         <div className="flex items-center gap-2 border-b border-line pb-2">
           <span className="shrink-0 rounded-md shadow-[0_0_0_1px_rgb(0_0_0/0.08)]">
