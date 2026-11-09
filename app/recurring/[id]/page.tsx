@@ -8,7 +8,7 @@ import { SetupNotice } from "@/components/SetupNotice";
 import { CATEGORIES, CATEGORY_KEYS, categoryMeta, categoryPillStyle } from "@/lib/categories";
 import { formatDate, formatDay, today } from "@/lib/months";
 import { plaidConfigured } from "@/lib/plaid";
-import { daysBetween, FREQUENCIES, frequencyMeta, monthlyCents, type RecurringStream } from "@/lib/recurring";
+import { daysBetween, FREQUENCIES, frequencyMeta, isCounted, monthlyCents, type RecurringStream } from "@/lib/recurring";
 import { loadRecurring } from "@/lib/recurringData";
 
 export const dynamic = "force-dynamic";
@@ -23,8 +23,7 @@ const PER: Record<string, string> = {
 };
 
 function stateLabel(stream: RecurringStream): { label: string; tone: string } {
-  if (stream.hidden) return { label: "Not recurring", tone: "border-line bg-surface text-muted" };
-  if (stream.state === "ended") return { label: "Ended", tone: "border-line bg-surface text-muted" };
+  if (!isCounted(stream)) return { label: "Not recurring", tone: "border-line bg-surface text-muted" };
   if (stream.state === "inactive") return { label: "Possibly inactive", tone: "border-line bg-surface text-muted" };
   if (stream.early) return { label: "New", tone: "border-line bg-surface text-muted" };
   return { label: "Active", tone: "border-positive/20 bg-positive/5 text-positive" };
@@ -90,6 +89,7 @@ export default async function RecurringStreamPage({ params }: PageProps<"/recurr
           frequency={stream.frequency}
           nextDate={stream.nextDate}
           hidden={stream.hidden}
+          canToggle={stream.hidden || isCounted(stream)}
           edited={stream.edited}
           categories={categoryOptions}
           frequencies={FREQUENCIES.map((item) => ({ value: item.key, label: item.label }))}

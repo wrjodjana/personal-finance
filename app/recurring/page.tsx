@@ -64,7 +64,6 @@ function toListStream(stream: RecurringStream, now: string): ListStream {
     inactive: stream.state === "inactive",
     early: stream.early,
     changeCents: stream.changeCents,
-    group: stream.hidden ? "hidden" : stream.state === "ended" ? "ended" : "tracked",
   };
 }
 
@@ -206,7 +205,7 @@ export default async function RecurringPage({
             previousHref={month > earliest ? monthHref(addMonths(month, -1)) : null}
             nextHref={month < latest ? monthHref(addMonths(month, 1)) : null}
           />
-          <RecurringList streams={streams.map((stream) => toListStream(stream, now))} />
+          <RecurringList streams={counted.map((stream) => toListStream(stream, now))} />
         </div>
 
         <div className="min-w-0 space-y-5">

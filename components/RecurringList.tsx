@@ -16,7 +16,6 @@ export type ListStream = {
   inactive: boolean;
   early: boolean;
   changeCents: number | null;
-  group: "tracked" | "ended" | "hidden";
 };
 
 function Badge({ tone, children }: { tone: "muted" | "positive" | "negative"; children: React.ReactNode }) {
@@ -59,38 +58,16 @@ function Row({ stream }: { stream: ListStream }) {
   );
 }
 
-function Group({ title, streams }: { title: string; streams: ListStream[] }) {
-  if (streams.length === 0) return null;
-  return (
-    <details className="group border-t border-line">
-      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm text-muted transition hover:text-ink sm:px-5 [&::-webkit-details-marker]:hidden">
-        <span>
-          {title} <span className="tabular text-faint">{streams.length}</span>
-        </span>
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4 transition group-open:rotate-180" aria-hidden>
-          <path d="m5 8 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </summary>
-      <ul className="pb-2">
-        {streams.map((stream) => (
-          <Row key={stream.id} stream={stream} />
-        ))}
-      </ul>
-    </details>
-  );
-}
-
 export function RecurringList({ streams }: { streams: ListStream[] }) {
   const [query, setQuery] = useState("");
   const needle = query.trim().toLowerCase();
   const matches = needle ? streams.filter((stream) => stream.name.toLowerCase().includes(needle)) : streams;
-  const tracked = matches.filter((stream) => stream.group === "tracked");
 
   return (
     <section className="card">
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-3 sm:px-5">
         <h2 className="text-sm font-medium">
-          Recurring payments <span className="tabular text-faint">{streams.filter((stream) => stream.group === "tracked").length}</span>
+          Recurring payments <span className="tabular text-faint">{streams.length}</span>
         </h2>
         <label className="control flex h-9 w-full items-center gap-2 px-3 focus-within:ring-2 focus-within:ring-line sm:w-56">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="size-4 shrink-0 text-faint" aria-hidden>
@@ -107,19 +84,17 @@ export function RecurringList({ streams }: { streams: ListStream[] }) {
           />
         </label>
       </div>
-      {tracked.length === 0 ? (
+      {matches.length === 0 ? (
         <p className="px-5 pt-2 pb-6 text-center text-sm text-muted">
           {needle ? `Nothing matches “${query.trim()}”.` : "No recurring payments found yet."}
         </p>
       ) : (
         <ul className="pb-2">
-          {tracked.map((stream) => (
+          {matches.map((stream) => (
             <Row key={stream.id} stream={stream} />
           ))}
         </ul>
       )}
-      <Group title="Ended" streams={matches.filter((stream) => stream.group === "ended")} />
-      <Group title="Not recurring" streams={matches.filter((stream) => stream.group === "hidden")} />
     </section>
   );
 }

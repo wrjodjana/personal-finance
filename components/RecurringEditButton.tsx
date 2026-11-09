@@ -14,6 +14,7 @@ type Props = {
   frequency: string;
   nextDate: string | null;
   hidden: boolean;
+  canToggle: boolean;
   edited: boolean;
   categories: SelectOption[];
   frequencies: SelectOption[];
@@ -61,9 +62,11 @@ export function RecurringEditButton(props: Props) {
         </svg>
         Edit
       </button>
-      <button type="button" className={BUTTON} onClick={toggleHidden} disabled={busy}>
-        {props.hidden ? "Track as recurring" : "Not recurring"}
-      </button>
+      {props.canToggle && (
+        <button type="button" className={BUTTON} onClick={toggleHidden} disabled={busy}>
+          {props.hidden ? "Track as recurring" : "Not recurring"}
+        </button>
+      )}
       {error && <p className="w-full text-xs text-negative">{error}</p>}
       {open && (
         <EditDialog
