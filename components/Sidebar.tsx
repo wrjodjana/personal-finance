@@ -20,6 +20,13 @@ const ICONS = {
   transactions: (
     <path d="M4 6.5h12m-12 4h12m-12 4h8" strokeLinecap="round" strokeLinejoin="round" />
   ),
+  recurring: (
+    <path
+      d="M4 9.5a6 6 0 0 1 10.4-3.6M14.75 3v3.25H11.5M16 10.5a6 6 0 0 1-10.4 3.6M5.25 17v-3.25H8.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  ),
   accounts: (
     <path
       d="M3 8.5 10 4l7 4.5M4.5 8.5v6m3.667-6v6m3.666-6v6m3.667-6v6M3 16.5h14"
@@ -35,6 +42,7 @@ const LINKS = [
   { href: "/investments", label: "Investments", icon: ICONS.investments },
   { href: "/spending", label: "Spending", icon: ICONS.spending },
   { href: "/transactions", label: "Transactions", icon: ICONS.transactions },
+  { href: "/recurring", label: "Recurring", icon: ICONS.recurring },
   { href: "/accounts", label: "Accounts", icon: ICONS.accounts },
 ];
 
@@ -54,14 +62,17 @@ export function Sidebar({ footer }: { footer: React.ReactNode }) {
       style={{ viewTransitionName: "tab-bar" }}
       className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line/60 bg-canvas/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:sticky md:top-0 md:bottom-auto md:z-10 md:h-screen md:w-52 md:shrink-0 md:flex-col md:border-t-0 md:border-r md:bg-surface/40 md:px-3 md:py-4"
     >
-      <nav className="relative flex flex-[6] md:flex-none md:flex-col md:gap-0.5">
+      <nav
+        className="relative flex flex-[var(--tabs)] md:flex-none md:flex-col md:gap-0.5"
+        style={{ "--tabs": LINKS.length } as React.CSSProperties}
+      >
         {activeIndex >= 0 && (
           <span
             aria-hidden
-            className="tab-glide pointer-events-none absolute inset-y-0 left-0 flex w-1/6 items-center justify-center md:hidden"
+            className="tab-glide pointer-events-none absolute inset-y-0 left-0 flex w-[calc(100%/var(--tabs))] items-center justify-center md:hidden"
             style={{ translate: `${activeIndex * 100}% 0` }}
           >
-            <span className="h-9 w-14 rounded-full bg-line/70" />
+            <span className="h-9 w-[min(3.5rem,calc(100%-4px))] rounded-full bg-line/70" />
           </span>
         )}
         {LINKS.map((link, index) => {

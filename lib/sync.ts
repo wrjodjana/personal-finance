@@ -6,6 +6,7 @@ import { getDb, type Db } from "./db";
 import { syncInvestments } from "./investments";
 import { today } from "./months";
 import { plaid, RECONNECT_CODES, toPlaidFailure } from "./plaid";
+import { syncRecurring } from "./recurringData";
 import {
   accounts,
   balanceSnapshots,
@@ -228,6 +229,10 @@ export async function syncItem(item: Item): Promise<SyncResult> {
   try {
     const page = await fetchChanges(item);
     await applyChanges(item, page);
+    await syncRecurring(
+      item,
+      page.accounts.map((account) => account.account_id),
+    );
     await syncInvestments(
       item,
       page.accounts.filter((account) => account.type === "investment").map((account) => account.account_id),

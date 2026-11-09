@@ -78,6 +78,13 @@
       "when": 1794124835085,
       "tag": "0010_display_currency",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1794183146554,
+      "tag": "0011_recurring",
+      "breakpoints": true
     }
   ]
 }

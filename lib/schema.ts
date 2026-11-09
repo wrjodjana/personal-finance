@@ -15,6 +15,7 @@ export const items = sqliteTable("items", {
   errorCode: text("error_code"),
   historyStatus: text("history_status"),
   investmentsError: text("investments_error"),
+  recurringError: text("recurring_error"),
   lastSyncedAt: text("last_synced_at"),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
@@ -153,4 +154,38 @@ export const exchangeRates = sqliteTable("exchange_rates", {
   rate: real("rate").notNull(),
   rateDate: text("rate_date").notNull(),
   fetchedAt: text("fetched_at").notNull(),
+});
+
+export const recurringStreams = sqliteTable("recurring_streams", {
+  id: text("id").primaryKey(),
+  itemId: text("item_id")
+    .notNull()
+    .references(() => items.id, { onDelete: "cascade" }),
+  accountId: text("account_id")
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  direction: text("direction", { enum: ["inflow", "outflow"] }).notNull(),
+  description: text("description").notNull(),
+  merchantName: text("merchant_name"),
+  frequency: text("frequency").notNull(),
+  averageCents: integer("average_cents").notNull(),
+  lastCents: integer("last_cents").notNull(),
+  firstDate: text("first_date").notNull(),
+  lastDate: text("last_date").notNull(),
+  predictedNextDate: text("predicted_next_date"),
+  status: text("status").notNull(),
+  isActive: integer("is_active", { mode: "boolean" }).notNull(),
+  plaidCategory: text("plaid_category"),
+  plaidCategoryDetailed: text("plaid_category_detailed"),
+  transactionIds: text("transaction_ids", { mode: "json" }).$type<string[]>().notNull(),
+});
+
+export const recurringEdits = sqliteTable("recurring_edits", {
+  streamId: text("stream_id").primaryKey(),
+  name: text("name"),
+  category: text("category"),
+  amountCents: integer("amount_cents"),
+  frequency: text("frequency"),
+  nextDate: text("next_date"),
+  hidden: integer("hidden", { mode: "boolean" }).notNull().default(false),
 });
