@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Lexend } from "next/font/google";
+import { cookies } from "next/headers";
 import { CurrencySwitch } from "@/components/CurrencySwitch";
 import { HideAmountsButton } from "@/components/HideAmountsButton";
 import { MoneyProvider } from "@/components/MoneyProvider";
+import { HIDDEN_KEY } from "@/lib/hidden";
 import { RefreshButton } from "@/components/RefreshButton";
 import { Sidebar } from "@/components/Sidebar";
 import { getMoney } from "@/lib/money";
@@ -26,13 +28,14 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const configured = plaidConfigured();
   const money = await getMoney();
+  const initialHidden = (await cookies()).get(HIDDEN_KEY)?.value === "1";
   return (
     <html lang="en" className={lexend.variable}>
       <head>
         <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
       </head>
       <body className="min-h-screen font-sans">
-        <MoneyProvider money={money}>
+        <MoneyProvider money={money} initialHidden={initialHidden}>
           <div className="flex min-h-screen flex-col pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] md:flex-row">
             <Sidebar
               footer={

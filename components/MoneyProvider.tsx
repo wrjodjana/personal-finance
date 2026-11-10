@@ -1,13 +1,26 @@
 "use client";
 
 import { createContext, useCallback, useContext, useSyncExternalStore } from "react";
+import { HIDDEN_KEY } from "@/lib/hidden";
 import { BASE_MONEY, formatMoney, type Money as MoneyValue } from "@/lib/currency";
 
 const MoneyContext = createContext<MoneyValue>(BASE_MONEY);
+const HiddenContext = createContext(false);
 
-const HIDDEN_KEY = "hide-amounts";
 const MASK = "••••";
 const listeners = new Set<() => void>();
+
+function readHidden(): boolean {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${HIDDEN_KEY}=([^;]*)`));
+  if (match) return match[1] === "1";
+  return localStorage.getItem(HIDDEN_KEY) === "1";
+}
+
+function writeHidden(hidden: boolean) {
+  const value = hidden ? "1" : "0";
+  document.cookie = `${HIDDEN_KEY}=${value}; path=/; max-age=31536000; samesite=lax`;
+  localStorage.setItem(HIDDEN_KEY, value);
+}
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
@@ -19,20 +32,29 @@ function subscribe(listener: () => void) {
 }
 
 export function useAmountsHidden(): [boolean, () => void] {
-  const hidden = useSyncExternalStore(
-    subscribe,
-    () => localStorage.getItem(HIDDEN_KEY) === "1",
-    () => false,
-  );
+  const initial = useContext(HiddenContext);
+  const hidden = useSyncExternalStore(subscribe, readHidden, () => initial);
   const toggle = useCallback(() => {
-    localStorage.setItem(HIDDEN_KEY, hidden ? "0" : "1");
+    writeHidden(!hidden);
     listeners.forEach((listener) => listener());
   }, [hidden]);
   return [hidden, toggle];
 }
 
-export function MoneyProvider({ money, children }: { money: MoneyValue; children: React.ReactNode }) {
-  return <MoneyContext value={money}>{children}</MoneyContext>;
+export function MoneyProvider({
+  money,
+  initialHidden = false,
+  children,
+}: {
+  money: MoneyValue;
+  initialHidden?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <MoneyContext value={money}>
+      <HiddenContext value={initialHidden}>{children}</HiddenContext>
+    </MoneyContext>
+  );
 }
 
 export function useMoney(): MoneyValue {
