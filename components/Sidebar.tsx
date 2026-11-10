@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const ICONS = {
   home: (
@@ -37,14 +37,32 @@ const ICONS = {
 };
 
 const LINKS = [
-  { href: "/", label: "Home", icon: ICONS.home },
-  { href: "/net-worth", label: "Net Worth", icon: ICONS.netWorth },
-  { href: "/investments", label: "Investments", icon: ICONS.investments },
-  { href: "/spending", label: "Spending", icon: ICONS.spending },
-  { href: "/transactions", label: "Transactions", icon: ICONS.transactions },
-  { href: "/recurring", label: "Recurring", icon: ICONS.recurring },
-  { href: "/accounts", label: "Accounts", icon: ICONS.accounts },
+  { href: "/", label: "Home", icon: ICONS.home, primary: true },
+  { href: "/net-worth", label: "Net Worth", icon: ICONS.netWorth, primary: true },
+  { href: "/investments", label: "Investments", icon: ICONS.investments, primary: true },
+  { href: "/spending", label: "Spending", icon: ICONS.spending, primary: true },
+  { href: "/transactions", label: "Transactions", icon: ICONS.transactions, primary: false },
+  { href: "/recurring", label: "Recurring", icon: ICONS.recurring, primary: false },
+  { href: "/accounts", label: "Accounts", icon: ICONS.accounts, primary: false },
 ];
+
+const PRIMARY_COUNT = LINKS.filter((link) => link.primary).length;
+const MOBILE_TABS = PRIMARY_COUNT + 1;
+
+function mobileIndex(index: number) {
+  if (index < 0) return -1;
+  return LINKS[index].primary ? LINKS.slice(0, index).filter((link) => link.primary).length : PRIMARY_COUNT;
+}
+
+function MoreIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="currentColor" className="tab-press size-5 shrink-0" aria-hidden>
+      <circle cx="4.5" cy="10" r="1.4" />
+      <circle cx="10" cy="10" r="1.4" />
+      <circle cx="15.5" cy="10" r="1.4" />
+    </svg>
+  );
+}
 
 function linkIndex(path: string) {
   return LINKS.findIndex((link) => (link.href === "/" ? path === "/" : path.startsWith(link.href)));
@@ -56,6 +74,12 @@ export function Sidebar({ footer }: { footer: React.ReactNode }) {
   const shownPath = pending && pending.from === pathname ? pending.to : pathname;
   const activeIndex = linkIndex(shownPath);
   const currentIndex = linkIndex(pathname);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const overflowActive = activeIndex >= 0 && !LINKS[activeIndex].primary;
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   return (
     <aside
@@ -64,13 +88,13 @@ export function Sidebar({ footer }: { footer: React.ReactNode }) {
     >
       <nav
         className="relative flex flex-[var(--tabs)] md:flex-none md:flex-col md:gap-0.5"
-        style={{ "--tabs": LINKS.length } as React.CSSProperties}
+        style={{ "--tabs": MOBILE_TABS } as React.CSSProperties}
       >
         {activeIndex >= 0 && (
           <span
             aria-hidden
             className="tab-glide pointer-events-none absolute inset-y-0 left-0 flex w-[calc(100%/var(--tabs))] items-center justify-center md:hidden"
-            style={{ translate: `${activeIndex * 100}% 0` }}
+            style={{ translate: `${mobileIndex(activeIndex) * 100}% 0` }}
           >
             <span className="h-9 w-[min(3.5rem,calc(100%-4px))] rounded-full bg-line/70" />
           </span>
@@ -87,7 +111,7 @@ export function Sidebar({ footer }: { footer: React.ReactNode }) {
                 currentIndex < 0 || index === currentIndex ? undefined : [index > currentIndex ? "tab-forward" : "tab-back"]
               }
               onNavigate={() => setPending({ from: pathname, to: link.href })}
-              className={`group relative flex flex-1 justify-center py-3.5 transition-colors md:flex-none md:items-center md:justify-start md:gap-2 md:rounded-lg md:border md:px-3 md:py-1.5 md:text-sm ${
+              className={`group relative flex flex-1 justify-center py-3.5 ${link.primary ? "" : "max-md:hidden"} transition-colors md:flex-none md:items-center md:justify-start md:gap-2 md:rounded-lg md:border md:px-3 md:py-1.5 md:text-sm ${
                 active
                   ? "font-medium text-ink md:control"
                   : "text-muted hover:text-ink md:border-transparent md:hover:bg-line/40"
@@ -107,8 +131,52 @@ export function Sidebar({ footer }: { footer: React.ReactNode }) {
             </Link>
           );
         })}
+        <button
+          type="button"
+          aria-label="More"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
+          className={`relative flex flex-1 justify-center py-3.5 transition-colors md:hidden ${
+            overflowActive || menuOpen ? "text-ink" : "text-muted"
+          }`}
+        >
+          <MoreIcon />
+        </button>
       </nav>
-      {footer && <div className="flex-1 md:mt-auto md:flex-none">{footer}</div>}
+      {menuOpen && (
+        <button
+          type="button"
+          aria-label="Close menu"
+          tabIndex={-1}
+          onClick={() => setMenuOpen(false)}
+          className="fixed inset-0 -z-10 cursor-default md:hidden"
+        />
+      )}
+      <div
+        className={`${
+          menuOpen ? "" : "max-md:hidden"
+        } max-md:popover max-md:absolute max-md:right-2 max-md:bottom-full max-md:mb-2 max-md:flex max-md:w-56 max-md:flex-col max-md:gap-0.5 max-md:p-1.5 md:contents`}
+      >
+        {LINKS.filter((link) => !link.primary).map((link) => {
+          const active = LINKS.indexOf(link) === activeIndex;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={active ? "page" : undefined}
+              className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm md:hidden ${
+                active ? "bg-line/70 font-medium text-ink" : "text-muted hover:bg-line/40 hover:text-ink"
+              }`}
+            >
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="size-5 shrink-0" aria-hidden>
+                {link.icon}
+              </svg>
+              {link.label}
+            </Link>
+          );
+        })}
+        {footer && <div className="max-md:flex max-md:flex-col max-md:gap-0.5 md:mt-auto">{footer}</div>}
+      </div>
     </aside>
   );
 }

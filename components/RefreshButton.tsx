@@ -29,9 +29,9 @@ export function RefreshButton() {
   }
 
   return (
-    <div className="relative flex md:flex-col md:gap-2">
+    <div className="relative flex flex-col gap-2">
       {message && (
-        <p className="text-xs text-negative max-md:popover max-md:absolute max-md:right-2 max-md:bottom-full max-md:mb-2 max-md:w-max max-md:max-w-64 max-md:px-3 max-md:py-2 md:order-last">
+        <p className="text-xs text-negative px-3 md:order-last">
           {message}
         </p>
       )}
@@ -40,7 +40,7 @@ export function RefreshButton() {
         onClick={refresh}
         disabled={busy}
         aria-label={busy ? "Syncing" : "Sync now"}
-        className="flex flex-1 justify-center py-3.5 text-muted transition hover:text-ink disabled:opacity-60 md:items-center md:justify-start md:gap-2 md:rounded-lg md:border md:border-transparent md:px-3 md:py-1.5 md:text-sm md:hover:bg-line/40"
+        className="flex w-full items-center justify-start gap-2 rounded-lg border border-transparent px-3 py-2.5 text-sm text-muted transition hover:bg-line/40 hover:text-ink disabled:opacity-60 md:py-1.5"
       >
         <svg
           viewBox="0 0 20 20"
@@ -52,7 +52,7 @@ export function RefreshButton() {
         >
           <path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6M16.5 3.5v3.5H13" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <span className="hidden md:inline">{busy ? "Syncing…" : "Sync now"}</span>
+        <span>{busy ? "Syncing…" : "Sync now"}</span>
       </button>
     </div>
   );

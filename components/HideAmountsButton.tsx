@@ -11,7 +11,7 @@ export function HideAmountsButton() {
       onClick={toggle}
       aria-label={label}
       aria-pressed={hidden}
-      className="flex flex-1 justify-center py-3.5 text-muted transition hover:text-ink md:items-center md:justify-start md:gap-2 md:rounded-lg md:border md:border-transparent md:px-3 md:py-1.5 md:text-sm md:hover:bg-line/40"
+      className="flex w-full items-center justify-start gap-2 rounded-lg border border-transparent px-3 py-2.5 text-sm text-muted transition hover:bg-line/40 hover:text-ink md:py-1.5"
     >
       <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="size-5 shrink-0" aria-hidden>
         <path
@@ -22,7 +22,7 @@ export function HideAmountsButton() {
         <circle cx="10" cy="10" r="2.25" />
         {hidden && <path d="M3.5 16.5l13-13" strokeLinecap="round" />}
       </svg>
-      <span className="hidden md:inline">{label}</span>
+      <span>{label}</span>
     </button>
   );
 }
