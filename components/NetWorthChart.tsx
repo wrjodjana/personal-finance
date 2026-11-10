@@ -50,11 +50,18 @@ export function NetWorthChart({ points, title = "Net Worth" }: { points: History
   const [hidden] = useAmountsHidden();
   const gradientId = useId();
   const [rangeKey, setRangeKey] = useState<RangeKey>("1M");
-  const [hover, setHover] = useState<HistoryPoint | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const range = RANGES.find((item) => item.key === rangeKey)!;
   const visible = slice(points, range);
   const first = visible[0];
   const last = visible[visible.length - 1];
+  const hover = hoverIndex === null ? null : (visible[hoverIndex] ?? null);
+  const cursor = hover ? hoverIndex! : visible.length - 1;
+  const data = visible.map((point, index) => ({
+    ...point,
+    solid: index <= cursor ? point.cents : null,
+    rest: index >= cursor ? point.cents : null,
+  }));
   const shown = hover ?? last;
   const change = shown.cents - first.cents;
   const share = first.cents !== 0 ? (change / Math.abs(first.cents)) * 100 : 0;
@@ -63,6 +70,10 @@ export function NetWorthChart({ points, title = "Net Worth" }: { points: History
   const low = Math.min(...values);
   const high = Math.max(...values);
   const pad = Math.max((high - low) * 0.15, Math.abs(high) * 0.01, 100);
+
+  const summary = hidden
+    ? `${title}, amounts hidden`
+    : `${title} ${formatMoney(shown.cents, money)}, ${change < 0 ? "down" : change > 0 ? "up" : "unchanged"} ${formatMoney(Math.abs(change), money)} (${Math.abs(share).toFixed(1)}%) ${hover ? `since ${dayLabel(first.date)}` : range.label.toLowerCase()}`;
 
   return (
     <div>
@@ -87,16 +98,22 @@ export function NetWorthChart({ points, title = "Net Worth" }: { points: History
           {hover ? `since ${dayLabel(first.date)}` : range.label}
         </p>
       </div>
-      <div className="mt-4 h-40 w-full">
+      <div
+        className="mt-4 h-40 w-full touch-pan-y select-none"
+        role="img"
+        aria-label={summary}
+        onTouchEnd={() => setHoverIndex(null)}
+        onTouchCancel={() => setHoverIndex(null)}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
-            data={visible}
+            data={data}
             margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
             onMouseMove={(state) => {
               const index = Number(state?.activeTooltipIndex);
-              setHover(Number.isInteger(index) ? (visible[index] ?? null) : null);
+              setHoverIndex(Number.isInteger(index) && index >= 0 && index < visible.length ? index : null);
             }}
-            onMouseLeave={() => setHover(null)}
+            onMouseLeave={() => setHoverIndex(null)}
           >
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -108,7 +125,16 @@ export function NetWorthChart({ points, title = "Net Worth" }: { points: History
             <Tooltip cursor={{ stroke: "oklch(0.8 0.005 70)", strokeWidth: 1 }} content={() => null} />
             <Area
               type="monotone"
-              dataKey="cents"
+              dataKey="rest"
+              stroke="oklch(0.82 0.005 70)"
+              strokeWidth={1.75}
+              fill="none"
+              activeDot={false}
+              isAnimationActive={false}
+            />
+            <Area
+              type="monotone"
+              dataKey="solid"
               stroke={color}
               strokeWidth={1.75}
               fill={`url(#${gradientId})`}
@@ -126,8 +152,13 @@ export function NetWorthChart({ points, title = "Net Worth" }: { points: History
             type="button"
             aria-pressed={item.key === rangeKey}
             onClick={() => setRangeKey(item.key)}
+            style={
+              item.key === rangeKey
+                ? { color, backgroundColor: `color-mix(in oklch, ${color} 12%, transparent)` }
+                : undefined
+            }
             className={`tabular rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-              item.key === rangeKey ? "bg-line/70 text-ink" : "text-muted hover:bg-line/40 hover:text-ink"
+              item.key === rangeKey ? "" : "text-muted hover:bg-line/40 hover:text-ink"
             }`}
           >
             {item.key}
