@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Lexend } from "next/font/google";
 import { CurrencySwitch } from "@/components/CurrencySwitch";
+import { HideAmountsButton } from "@/components/HideAmountsButton";
 import { MoneyProvider } from "@/components/MoneyProvider";
 import { RefreshButton } from "@/components/RefreshButton";
 import { Sidebar } from "@/components/Sidebar";
@@ -40,6 +41,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     <div className="hidden md:block">
                       <CurrencySwitch variant="sidebar" />
                     </div>
+                    <HideAmountsButton />
                     <RefreshButton />
                   </>
                 ) : null
